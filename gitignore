@@ -1,0 +1,52 @@
+# =====================
+# Database & Credentials
+# =====================
+config/database.php
+*.sql
+*.sqlite
+*.db
+
+# =====================
+# Environment & Secrets
+# =====================
+.env
+.env.local
+.env.production
+*.key
+*.pem
+
+# =====================
+# PHP
+# =====================
+vendor/
+composer.lock
+
+# =====================
+# Node / Build tools (if used)
+# =====================
+node_modules/
+npm-debug.log*
+yarn-error.log
+.dist/
+dist/
+build/
+
+# =====================
+# OS & Editor junk
+# =====================
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# =====================
+# Logs & temp files
+# =====================
+*.log
+*.tmp
+*.bak
+/tmp/
