@@ -2,7 +2,6 @@
 # Database & Credentials
 # =====================
 config/database.php
-database/schema.sql
 *.sql
 *.sqlite
 *.db
