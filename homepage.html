@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — FellahDZ</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <style>
+        
+        .weather-strip {
+            background: linear-gradient(135deg, var(--forest) 0%, var(--pine) 100%);
+            border-radius: 18px;
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-m);
+            color: var(--cream);
+            position: relative;
+            overflow: hidden;
+        }
+        .weather-strip::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 150px; height: 150px;
+            background: radial-gradient(circle, rgba(201,106,42,.3) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+        .weather-main { display: flex; align-items: center; gap: 1.25rem; z-index: 1; }
+        .weather-icon-wrap {
+            width: 70px; height: 70px;
+            background: rgba(255,255,255,.1);
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.2rem;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,.15);
+        }
+        .weather-info h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.8rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: .2rem;
+        }
+        .weather-info .cond { font-size: 1.1rem; font-weight: 600; opacity: .9; text-transform: capitalize; }
+        .weather-info .loc {
+            font-size: .85rem; opacity: .7; margin-top: .15rem;
+            display: flex; align-items: center; gap: .4rem;
+        }
+        .weather-details { display: flex; gap: 1.5rem; z-index: 1; }
+        .weather-detail {
+            text-align: center; padding: .5rem 1rem;
+            background: rgba(255,255,255,.08);
+            border-radius: 10px; backdrop-filter: blur(4px);
+        }
+        .weather-detail i { font-size: 1.1rem; color: var(--terra-lt); margin-bottom: .3rem; display: block; }
+        .weather-detail .val { font-size: 1rem; font-weight: 700; }
+        .weather-detail .lbl { font-size: .7rem; opacity: .7; text-transform: uppercase; letter-spacing: .5px; }
+
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.75rem;
+        }
+        .qa-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            text-decoration: none;
+            color: var(--ink);
+            transition: all .25s;
+            box-shadow: var(--shadow-s);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: .65rem;
+            cursor: pointer;
+        }
+        .qa-card i {
+            width: 48px; height: 48px;
+            background: var(--terra);
+            color: #fff;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            transition: all .25s;
+        }
+        .qa-card span { font-size: .85rem; font-weight: 600; }
+        .qa-card:hover { border-color: var(--terra); transform: translateY(-4px); box-shadow: var(--shadow-m); }
+        .qa-card:hover i { background: var(--forest); transform: scale(1.1); }
+
+        
+        .section-label {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--forest);
+            margin: 1.5rem 0 .85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        
+        .refresh-btn {
+            position: absolute;
+            top: 1rem; right: 1rem;
+            background: rgba(255,255,255,.1);
+            border: none;
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            color: var(--cream);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all .2s;
+            z-index: 2;
+        }
+        .refresh-btn:hover { background: rgba(255,255,255,.2); transform: rotate(180deg); }
+        .refresh-btn.spinning { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        
+        .popup-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(28,35,24,.5);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .popup-overlay.open { display: flex; }
+        .popup-box {
+            background: var(--white);
+            border-radius: 16px;
+            width: 480px;
+            max-width: 95vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2rem;
+            box-shadow: var(--shadow-l);
+            border: 1.5px solid var(--border);
+            border-top: 4px solid var(--terra);
+            animation: popIn .25s ease;
+        }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(.96) translateY(12px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .popup-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: .9rem;
+            border-bottom: 1.5px solid var(--border);
+        }
+        .popup-head h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--forest);
+        }
+        .popup-close {
+            width: 34px; height: 34px;
+            border-radius: 7px;
+            border: 1.5px solid var(--border);
+            background: transparent;
+            color: var(--ash);
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: all .2s;
+        }
+        .popup-close:hover { background: rgba(201,106,42,.1); color: var(--terra); border-color: var(--terra); }
+
+        
+        .form-group { margin-bottom: 1.15rem; }
+        .form-group label {
+            display: block;
+            font-size: .74rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            color: var(--forest);
+            margin-bottom: .4rem;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: .8rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 9px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .93rem;
+            background: var(--cream);
+            color: var(--ink);
+            transition: all .2s;
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--forest);
+            background: var(--white);
+            box-shadow: 0 0 0 3px rgba(27,58,43,.08);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: .75rem;
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+            border-top: 1.5px solid var(--border);
+        }
+        .btn {
+            padding: .7rem 1.4rem;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .88rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            letter-spacing: .1px;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--forest);
+            color: var(--forest);
+        }
+        .btn-outline:hover { background: var(--forest); color: #fff; transform: translateY(-1px); }
+        .btn-green {
+            background: var(--forest);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(27,58,43,.25);
+        }
+        .btn-green:hover { background: var(--pine); transform: translateY(-1px); box-shadow: 0 8px 22px rgba(27,58,43,.3); }
+
+        
+        .report-panel {
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            display: none;
+        }
+        .report-panel.open { display: block; animation: slideDown .3s ease; }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: .75rem;
+            border-bottom: 1.5px solid var(--border);
+        }
+        .report-header h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            color: var(--forest);
+        }
+        .report-content { font-size: .9rem; line-height: 1.6; color: var(--ink); }
+        .report-row {
+            display: flex;
+            justify-content: space-between;
+            padding: .5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .report-row:last-child { border-bottom: none; }
+        .report-row span:first-child { color: var(--ash); font-weight: 500; }
+        .report-row span:last-child { font-weight: 600; color: var(--forest); }
+
+        
+        .notif {
+            position: fixed;
+            bottom: 1.75rem; right: 1.75rem;
+            padding: .85rem 1.4rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: .88rem;
+            z-index: 9999;
+            box-shadow: var(--shadow-m);
+            animation: slideUp .3s ease;
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            border-left: 4px solid rgba(255,255,255,.4);
+        }
+        .notif-success { background: var(--forest); color: #fff; }
+        .notif-error { background: #e74c3c; color: #fff; }
+        .notif-info { background: var(--terra); color: #fff; }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(120%); opacity: 0; }
+        }
+
+        
+        .map-card {
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: var(--shadow-s);
+        }
+        .map-card .card-header {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1.5px solid var(--border);
+        }
+        .map-card .card-num {
+            width: 36px; height: 36px;
+            background: var(--terra);
+            color: var(--white);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .9rem;
+        }
+        .map-card .card-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--white);
+        }
+        .map-card .card-body { padding: 0; }
+        #farmMap {
+            height: 420px;
+            width: 100%;
+            z-index: 1;
+        }
+        .map-controls {
+            padding: 1rem 1.5rem;
+            background: var(--cream);
+            border-top: 1.5px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .map-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: .3rem;
+            flex: 1;
+            min-width: 140px;
+        }
+        .map-control-group label {
+            font-size: .72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--forest);
+        }
+        .map-control-group input {
+            padding: .6rem .8rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .88rem;
+            background: var(--white);
+            color: var(--ink);
+            width: 100%;
+        }
+        .map-control-group input:focus {
+            outline: none;
+            border-color: var(--forest);
+        }
+        .map-btn {
+            padding: .65rem 1.2rem;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .85rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            background: var(--forest);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            transition: all .2s;
+            white-space: nowrap;
+        }
+        .map-btn:hover { background: var(--pine); transform: translateY(-1px); }
+        .map-btn.secondary { background: var(--terra); }
+        .map-btn.secondary:hover { background: #b55a2a; }
+        .map-btn.outline {
+            background: transparent;
+            border: 2px solid var(--forest);
+            color: var(--forest);
+        }
+        .map-btn.outline:hover { background: var(--forest); color: #fff; }
+        .map-btn:disabled { opacity: .6; cursor: not-allowed; }
+        .map-info-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: .75rem 1.5rem;
+            background: var(--white);
+            border-top: 1.5px solid var(--border);
+        }
+        .map-info-bar .loc-info {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            font-size: .85rem;
+            color: var(--ink);
+            font-weight: 500;
+        }
+        .map-info-bar .loc-info i { color: var(--terra); }
+        .map-info-bar .loc-coords {
+            font-size: .75rem;
+            color: var(--ash);
+            font-family: monospace;
+        }
+        .fields-list {
+            padding: .75rem 1.5rem;
+            background: var(--cream);
+            border-top: 1px solid var(--border);
+        }
+        .fields-list-title {
+            font-size: .75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--forest);
+            margin-bottom: .5rem;
+        }
+        .field-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .35rem .7rem;
+            border-radius: 6px;
+            font-size: .78rem;
+            font-weight: 600;
+            margin-right: .4rem;
+            margin-bottom: .4rem;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .field-tag:hover { transform: translateY(-2px); box-shadow: var(--shadow-s); }
+        .field-tag.field-1 { background: rgba(39,174,96,.15); color: #27ae60; }
+        .field-tag.field-2 { background: rgba(52,152,219,.15); color: #3498db; }
+        .field-tag.field-3 { background: rgba(230,126,34,.15); color: #e67e22; }
+        .field-tag.field-4 { background: rgba(155,89,182,.15); color: #9b59b6; }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,.15);
+        }
+        .leaflet-popup-content {
+            margin: 12px 16px;
+            font-family: 'DM Sans', sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fas fa-seedling"></i></div>
+        <div class="sidebar-logo-text">Fellah<span>DZ</span></div>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="homepage.html" class="active"><i class="fas fa-home"></i> Home</a></li>
+        <li><a href="CropManagement.html"><i class="fas fa-leaf"></i> Crop Management</a></li>
+        <li><a href="user-management-farmer.html"><i class="fas fa-users"></i> User Management</a></li>
+        <li><a href="activities.html"><i class="fas fa-tractor"></i> Activities</a></li>
+        <li><a href="equipment_seeds.html"><i class="fas fa-tools"></i> Equipment & Seeds</a></li>
+        <li><a href="settings-farmer.html"><i class="fas fa-cog"></i> Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+        <a href="home.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+
+<main class="main">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1>Dashboard</h1>
+            <p>Welcome back, <span id="welcomeName">Saleh</span> — here's today's overview</p>
+        </div>
+        <div class="user-chip">
+            <div class="user-chip-avatar" id="userInitials">SZ</div>
+            <div class="user-chip-info">
+                <strong id="userFullName">Saleh Zidane</strong>
+                <span id="userRole">Farmer</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weather -->
+    <div class="weather-strip" id="weatherWidget">
+        <button class="refresh-btn" onclick="fetchWeather()" title="Refresh weather">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+        <div class="weather-main">
+            <div class="weather-icon-wrap" id="weatherIcon"><i class="fas fa-sun"></i></div>
+            <div class="weather-info">
+                <h2 id="tempDisplay">--°C</h2>
+                <div class="cond" id="condDisplay">Loading...</div>
+                <div class="loc"><i class="fas fa-map-marker-alt"></i> Jijel, Algeria (Farm Location)</div>
+            </div>
+        </div>
+        <div class="weather-details" id="weatherDetails">
+            <div class="weather-detail">
+                <i class="fas fa-tint"></i>
+                <div class="val" id="humidityDisplay">--%</div>
+                <div class="lbl">Humidity</div>
+            </div>
+            <div class="weather-detail">
+                <i class="fas fa-wind"></i>
+                <div class="val" id="windDisplay">-- km/h</div>
+                <div class="lbl">Wind</div>
+            </div>
+            <div class="weather-detail">
+                <i class="fas fa-eye"></i>
+                <div class="val" id="visibilityDisplay">-- km</div>
+                <div class="lbl">Visibility</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon si-green"><i class="fas fa-seedling"></i></div>
+            <div><div class="stat-val" id="totalCrops">6</div><div class="stat-label">Total Crops</div></div>
+        </div>
+        <div class="stat-card" onclick="window.location.href='user-management-farmer.html'" style="cursor: pointer;">
+            <div class="stat-icon si-blue"><i class="fas fa-users"></i></div>
+            <div><div class="stat-val" id="workerCount">6</div><div class="stat-label">Workers</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-orange"><i class="fas fa-tasks"></i></div>
+            <div><div class="stat-val" id="activeTasks">0</div><div class="stat-label">Active Tasks</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-green"><i class="fas fa-chart-line"></i></div>
+            <div><div class="stat-val">85%</div><div class="stat-label">Efficiency</div></div>
+        </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="section-label">Quick Actions</div>
+    <div class="quick-actions">
+        <a href="activities.html" class="qa-card">
+            <i class="fas fa-clipboard-check"></i><span>Update Activity</span>
+        </a>
+        <div class="qa-card" onclick="generateReport()">
+            <i class="fas fa-file-alt"></i><span>Generate Report</span>
+        </div>
+    </div>
+
+    <!-- Report Panel -->
+    <div class="report-panel" id="reportPanel">
+        <div class="report-header">
+            <h3><i class="fas fa-file-alt" style="color: var(--terra); margin-right: .5rem;"></i>Daily Farm Report</h3>
+            <button class="popup-close" onclick="closeReport()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="report-content" id="reportContent"></div>
+        <div class="form-actions" style="margin-top: 1rem; padding-top: 1rem;">
+            <button class="btn btn-outline" onclick="closeReport()">Close</button>
+            <button class="btn btn-green" onclick="downloadReport()"><i class="fas fa-download"></i> Download</button>
+        </div>
+    </div>
+
+    <!-- Farm Location Map -->
+    <div class="section-label">Farm Location & Fields</div>
+    <div class="map-card" id="mapCard">
+        <div class="card-header">
+            <div class="card-num"><i class="fas fa-map-marked-alt" style="font-size:.9rem;"></i></div>
+            <h2>Map — <span id="mapTitleLocation">Jijel Farm</span></h2>
+        </div>
+        <div class="card-body">
+            <div id="farmMap"></div>
+            <div class="map-controls">
+                <div class="map-control-group" style="flex: 2;">
+                    <label><i class="fas fa-map-marker-alt"></i> Farm Location Name</label>
+                    <input type="text" id="farmLocationName" value="Jijel, Algeria" placeholder="Enter location name">
+                </div>
+                <div class="map-control-group">
+                    <label><i class="fas fa-arrows-alt-h"></i> Latitude</label>
+                    <input type="number" id="farmLat" value="36.8206" step="0.0001" placeholder="Latitude">
+                </div>
+                <div class="map-control-group">
+                    <label><i class="fas fa-arrows-alt-v"></i> Longitude</label>
+                    <input type="number" id="farmLon" value="5.7667" step="0.0001" placeholder="Longitude">
+                </div>
+                <button class="map-btn outline" onclick="updateMapOnly()">
+                    <i class="fas fa-sync-alt"></i> Update Map
+                </button>
+                <button class="map-btn" id="saveLocationBtn" onclick="saveFarmLocation()">
+                    <i class="fas fa-save"></i> Save Location
+                </button>
+                <button class="map-btn secondary" onclick="detectFields()">
+                    <i class="fas fa-search-location"></i> Detect Fields
+                </button>
+            </div>
+            <div class="fields-list" id="fieldsList" style="display: none;">
+                <div class="fields-list-title"><i class="fas fa-th-large"></i> Detected Fields</div>
+                <div id="fieldsTags"></div>
+            </div>
+            <div class="map-info-bar">
+                <div class="loc-info">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span id="mapLocationText">Jijel, Algeria</span>
+                </div>
+                <div class="loc-coords" id="mapCoords">36.8206° N, 5.7667° E</div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+//CONFIG 
+const DEFAULT_LAT = 36.8206, DEFAULT_LON = 5.7667;
+const LOCATION_API = 'api/farm-location.php';
+
+const weatherCodes={0:{icon:'fa-sun',label:'Clear sky',color:'#f0cf80'},1:{icon:'fa-cloud-sun',label:'Mainly clear',color:'#e8a06a'},2:{icon:'fa-cloud-sun',label:'Partly cloudy',color:'#c8ddd0'},3:{icon:'fa-cloud',label:'Overcast',color:'#6b7c6b'},45:{icon:'fa-smog',label:'Foggy',color:'#9aa899'},48:{icon:'fa-smog',label:'Rime fog',color:'#9aa899'},51:{icon:'fa-cloud-rain',label:'Light drizzle',color:'#7da0b3'},53:{icon:'fa-cloud-rain',label:'Moderate drizzle',color:'#5a8f6e'},55:{icon:'fa-cloud-showers-heavy',label:'Dense drizzle',color:'#4a7c5e'},61:{icon:'fa-cloud-rain',label:'Slight rain',color:'#5a8f6e'},63:{icon:'fa-cloud-showers-heavy',label:'Moderate rain',color:'#4a7c5e'},65:{icon:'fa-cloud-showers-heavy',label:'Heavy rain',color:'#2c5f41'},71:{icon:'fa-snowflake',label:'Slight snow',color:'#a8d5e5'},73:{icon:'fa-snowflake',label:'Moderate snow',color:'#8bc4d9'},75:{icon:'fa-snowflake',label:'Heavy snow',color:'#6ab0cf'},80:{icon:'fa-cloud-rain',label:'Rain showers',color:'#5a8f6e'},81:{icon:'fa-cloud-showers-heavy',label:'Moderate showers',color:'#4a7c5e'},82:{icon:'fa-cloud-showers-heavy',label:'Violent showers',color:'#2c5f41'},95:{icon:'fa-bolt',label:'Thunderstorm',color:'#d4a843'},96:{icon:'fa-bolt',label:'Thunderstorm + hail',color:'#c96a2a'},99:{icon:'fa-bolt',label:'Heavy thunderstorm',color:'#b43228'}};
+
+const fieldsData=[{name:'Field 1',offsetLat:.002,offsetLon:.0015,crop:'Lettuce',area:'2.5 ha'},{name:'Field 2',offsetLat:-.0015,offsetLon:.002,crop:'Tomato',area:'3.0 ha'},{name:'Field 3',offsetLat:.001,offsetLon:-.002,crop:'Onion',area:'1.8 ha'},{name:'Field 4',offsetLat:-.0025,offsetLon:-.001,crop:'Apricots',area:'4.2 ha'}];
+const fieldColors = ['#27ae60', '#3498db', '#e67e22', '#9b59b6'];
+
+let currentUser = { id: 0, name: 'Guest User', email: '', role: 'guest', initials: 'GU' };
+let crops=JSON.parse(localStorage.getItem('fellah_crops'))||[{name:'Lettuce',type:'Vegetable',planting:'2026-02-08',harvest:'2026-03-24',location:'Field 1'},{name:'Tomato',type:'Vegetable',planting:'2026-02-15',harvest:'2026-04-30',location:'Field 2'},{name:'Onion',type:'Vegetable',planting:'2026-03-01',harvest:'2026-06-15',location:'Field 3'},{name:'Apricots',type:'Fruit',planting:'2026-02-10',harvest:'2026-05-20',location:'Field 4'},{name:'Beans',type:'Legume',planting:'2026-03-05',harvest:'2026-05-25',location:'Field 4'},{name:'Wheat',type:'Cereal',planting:'2026-01-15',harvest:'2026-06-01',location:'Field 1'}];
+let farmMap, farmMarker, fieldMarkers = [], savedLocation = null;
+
+// WORKER COUNT 
+async function loadWorkerCount() {
+    try {
+        const data = await fetch('admin/workers.php').then(r => r.json());
+        if (data.success && Array.isArray(data.workers))
+            document.getElementById('workerCount').textContent = data.workers.length;
+    } catch (e) { console.error('Worker count error:', e); }
+}
+
+// UTILITIES 
+const $ = id => document.getElementById(id);
+const showNotif = (msg, type = 'success') => {
+    document.querySelectorAll('.notif').forEach(n => n.remove());
+    const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', info:'fa-info-circle' };
+    const n = Object.assign(document.createElement('div'), {
+        className: `notif notif-${type}`,
+        innerHTML: `<i class="fas ${icons[type]}"></i> ${msg}`
+    });
+    document.body.appendChild(n);
+    setTimeout(() => { n.style.animation = 'slideOut .3s ease forwards'; setTimeout(() => n.remove(), 300); }, 3000);
+};
+
+// USER 
+async function loadUser() {
+    try {
+        const res = await fetch('api/get-user.php', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success && data.user) {
+            currentUser = data.user;
+            $('welcomeName').textContent = currentUser.name.split(' ')[0] || 'Guest';
+            $('userInitials').textContent = currentUser.initials;
+            $('userFullName').textContent = currentUser.name;
+            $('userRole').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+            const opt = $('currentUserOption');
+            if (opt) { opt.value = currentUser.name; opt.textContent = currentUser.name + ' (You)'; }
+        }
+    } catch (e) { console.log('Guest mode'); }
+}
+
+//LOCATION 
+async function loadLocation() {
+    try {
+        const res = await fetch(LOCATION_API + '?action=get', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success && data.location) {
+            savedLocation = data.location;
+            updateLocationUI(data.location.name || 'Jijel, Algeria', data.location.lat || DEFAULT_LAT, data.location.lon || DEFAULT_LON);
+            return data.location;
+        }
+    } catch (e) { console.error('Load location failed:', e); }
+    return { name: 'Jijel, Algeria', lat: DEFAULT_LAT, lon: DEFAULT_LON };
+}
+
+function updateLocationUI(name, lat, lon) {
+    $('farmLocationName').value = name;
+    $('farmLat').value = lat;
+    $('farmLon').value = lon;
+    $('mapLocationText').textContent = name;
+    $('mapCoords').textContent = `${parseFloat(lat).toFixed(4)}° N, ${parseFloat(lon).toFixed(4)}° E`;
+    $('mapTitleLocation').textContent = name.split(',')[0] + ' Farm';
+}
+
+async function saveLocation() {
+    const name = $('farmLocationName').value.trim();
+    const lat = parseFloat($('farmLat').value);
+    const lon = parseFloat($('farmLon').value);
+    if (!name || isNaN(lat) || isNaN(lon)) { showNotif('Please fill all fields with valid values', 'error'); return; }
+
+    const btn = $('saveLocationBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    try {
+        const res = await fetch(LOCATION_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name, lat, lon })
+        });
+        const data = await res.json();
+        if (data.success) {
+            savedLocation = { name, lat, lon };
+            showNotif('Farm location saved permanently!', 'success');
+        } else throw new Error(data.error || 'Failed to save');
+    } catch (err) {
+        console.error('Save error:', err);
+        showNotif('Failed to save to database: ' + err.message, 'error');
+        localStorage.setItem('fellah_farm_location', JSON.stringify({ name, lat, lon }));
+        showNotif('Saved locally (database unavailable)', 'info');
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Location';
+    }
+}
+
+// MAP
+const createIcon = (html, size, anchor) => L.divIcon({ html, iconSize: size, iconAnchor: anchor, popupAnchor: [0, -anchor[1] - 2] });
+
+function initMap(lat, lon, name) {
+    if (farmMap) { farmMap.remove(); farmMap = null; }
+    farmMap = L.map('farmMap').setView([lat, lon], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+    }).addTo(farmMap);
+
+    const farmHtml = `<div style="background:#c96a2a;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.3);"><i class="fas fa-tractor" style="color:#fff;font-size:15px;"></i></div>`;
+    farmMarker = L.marker([lat, lon], { icon: createIcon(farmHtml, [40, 40], [20, 20]) }).addTo(farmMap);
+    farmMarker.bindPopup(createPopupContent('FellahDZ Farm', name, `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`, '#c96a2a', 'fa-tractor')).openPopup();
+}
+
+function createPopupContent(title, subtitle, coords, color, icon) {
+    return `<div style="font-family:'DM Sans',sans-serif;min-width:180px;">
+        <strong style="color:#1b3a2b;font-size:1rem;display:block;margin-bottom:.3rem;">
+            <i class="fas ${icon}" style="color:${color};"></i> ${title}
+        </strong>
+        <span style="color:#666;font-size:.85rem;">${subtitle}</span><br>
+        <span style="color:#888;font-size:.8rem;">${coords}</span>
+    </div>`;
+}
+
+function updateMap(lat, lon, name) {
+    if (!farmMap) return;
+    clearFields();
+    $('fieldsList').style.display = 'none';
+    farmMap.setView([lat, lon], 13);
+    farmMarker.setLatLng([lat, lon]);
+    farmMarker.setPopupContent(createPopupContent('FellahDZ Farm', name, `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`, '#c96a2a', 'fa-tractor')).openPopup();
+}
+
+function detectFields() {
+    const lat = parseFloat($('farmLat').value) || DEFAULT_LAT;
+    const lon = parseFloat($('farmLon').value) || DEFAULT_LON;
+    clearFields();
+
+    fieldsData.forEach((field, i) => {
+        const color = fieldColors[i];
+        const html = `<div style="background:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25);"><i class="fas fa-seedling" style="color:#fff;font-size:11px;"></i></div>`;
+        const m = L.marker([lat + field.offsetLat, lon + field.offsetLon], {
+            icon: createIcon(html, [28, 28], [14, 14])
+        }).addTo(farmMap);
+        m.bindPopup(createPopupContent(field.name, `Crop: ${field.crop}<br>Area: ${field.area}`, '', color, 'fa-seedling'));
+        fieldMarkers.push(m);
+    });
+
+    const group = new L.featureGroup([farmMarker, ...fieldMarkers]);
+    farmMap.fitBounds(group.getBounds().pad(0.2));
+
+    $('fieldsTags').innerHTML = fieldsData.map((f, i) =>
+        `<span class="field-tag field-${i+1}" onclick="focusField(${i})"><i class="fas fa-seedling"></i> ${f.name} — ${f.crop}</span>`
+    ).join('');
+    $('fieldsList').style.display = 'block';
+    showNotif('4 fields detected around farm location', 'success');
+}
+
+const focusField = i => { if (fieldMarkers[i]) { farmMap.setView(fieldMarkers[i].getLatLng(), 16); fieldMarkers[i].openPopup(); } };
+
+const clearFields = () => { fieldMarkers.forEach(m => farmMap.removeLayer(m)); fieldMarkers = []; };
+
+//WEATHER 
+async function fetchWeather() {
+    const btn = document.querySelector('.refresh-btn');
+    if (btn) btn.classList.add('spinning');
+    try {
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${DEFAULT_LAT}&longitude=${DEFAULT_LON}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,visibility&timezone=Africa/Algiers`);
+        const data = await res.json();
+        const c = data.current, w = weatherCodes[c.weather_code] || weatherCodes[0];
+        $('tempDisplay').textContent = Math.round(c.temperature_2m) + '°C';
+        $('condDisplay').textContent = w.label;
+        $('weatherIcon').innerHTML = `<i class="fas ${w.icon}" style="color:${w.color};"></i>`;
+        $('humidityDisplay').textContent = c.relative_humidity_2m + '%';
+        $('windDisplay').textContent = Math.round(c.wind_speed_10m) + ' km/h';
+        $('visibilityDisplay').textContent = c.visibility ? (c.visibility / 1000).toFixed(1) + ' km' : 'N/A';
+    } catch (e) { console.error('Weather error:', e); }
+    finally { if (btn) btn.classList.remove('spinning'); }
+}
+
+// CROPS 
+const openCropPopup = () => {
+    $('cropPopup').classList.add('open');
+    $('plantingDate').valueAsDate = new Date();
+    const h = new Date(); h.setMonth(h.getMonth() + 3);
+    $('harvestDate').valueAsDate = h;
+}
+const closeCropPopup = () => { $('cropPopup').classList.remove('open'); $('cropName').value = ''; };
+function saveCrop() {
+    const name = $('cropName').value.trim();
+    if (!name || !$('plantingDate').value || !$('harvestDate').value) {
+        showNotif('Please fill all required fields', 'error'); return;
+    }
+    crops.push({
+        name, type: $('cropType').value,
+        planting: $('plantingDate').value,
+        harvest: $('harvestDate').value,
+        location: $('cropLocation').value
+    });
+    localStorage.setItem('fellah_crops', JSON.stringify(crops));
+    $('totalCrops').textContent = crops.length;
+    closeCropPopup();
+    showNotif(`Crop "${name}" added!`, 'success');
+}
+
+//REPORT 
+function generateReport() {
+    const locName = savedLocation ? savedLocation.name : 'Jijel, Algeria';
+    $('reportContent').innerHTML = `
+        <div class="report-row"><span>Report Date</span><span>${new Date().toLocaleDateString('en-GB')}</span></div>
+        <div class="report-row"><span>Farm Location</span><span>${locName}</span></div>
+        <div class="report-row"><span>Current Weather</span><span>${$('tempDisplay').textContent} — ${$('condDisplay').textContent}</span></div>
+        <div class="report-row"><span>Total Crops</span><span>${crops.length} crops</span></div>
+        <div class="report-row"><span>Active Workers</span><span>${document.getElementById('workerCount').textContent} workers</span></div>
+        <div class="report-row"><span>Efficiency Rate</span><span>85%</span></div>
+    `;
+    $('reportPanel').classList.add('open');
+    $('reportPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+const closeReport = () => $('reportPanel').classList.remove('open');
+function downloadReport() {
+    const url = URL.createObjectURL(new Blob([`FELLAH DZ — FARM REPORT\nGenerated: ${new Date().toLocaleString()}\n\n${$('reportContent').innerText}`], { type: 'text/plain' }));
+    Object.assign(document.createElement('a'), { href: url, download: `Farm_Report_${new Date().toISOString().split('T')[0]}.txt` }).click();
+    URL.revokeObjectURL(url);
+    showNotif('Report downloaded!', 'success');
+}
+
+//ACTIVITY
+const openActivityPopup = () => {
+    $('activityPopup').classList.add('open');
+    $('activityTitle').value = ''; $('activityDetails').value = '';
+}
+const closeActivityPopup = () => $('activityPopup').classList.remove('open');
+const saveActivity = () => {
+    if (!$('activityTitle').value.trim()) { showNotif('Please enter a title', 'error'); return; }
+    closeActivityPopup();
+    showNotif('Activity added!', 'success');
+};
+
+//INIT 
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadUser();
+    await loadWorkerCount();
+    fetchWeather();
+    setInterval(fetchWeather, 600000);
+    $('totalCrops').textContent = crops.length;
+    const loc = await loadLocation();
+    setTimeout(() => initMap(parseFloat(loc.lat), parseFloat(loc.lon), loc.name), 100);
+});
+
+// Close popups on outside click
+['cropPopup', 'activityPopup'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('click', e => { if (e.target.id === id) el.classList.remove('open'); });
+});
+</script>
+</body>
+</html>

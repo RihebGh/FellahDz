@@ -1,0 +1,502 @@
+<?php
+require_once 'auth-check.php';
+$user = checkAdmin();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management — FellahDZ</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        .password-cell {
+            font-family: monospace;
+            background: rgba(44, 95, 65, 0.08);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .credentials-box {
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .credentials-box h4 {
+            color: #0369a1;
+            margin-bottom: 15px;
+        }
+        .credential-item {
+            background: white;
+            padding: 10px 15px;
+            margin: 8px 0;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 1.1rem;
+        }
+        .credential-label {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fas fa-seedling"></i></div>
+        <div class="sidebar-logo-text">Fellah<span>DZ</span></div>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="homepage.html"><i class="fas fa-home"></i> Home</a></li>
+        <li><a href="CropManagement.html"><i class="fas fa-leaf"></i> Crop Management</a></li>
+        <li><a href="user-management-farmer.html" class="active"><i class="fas fa-users"></i> User Management</a></li>
+        <li><a href="activities.html"><i class="fas fa-tractor"></i> Activities</a></li>
+        <li><a href="equipment_seeds.html"><i class="fas fa-tools"></i> Equipment & Seeds</a></li>
+        <li><a href="settings-farmer.html"><i class="fas fa-cog"></i> Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+        <a href="#" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+
+<main class="main">
+
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1><i class="fas fa-users" style="color:var(--terra);margin-right:.5rem;"></i>User Management</h1>
+            <p>Manage farm workers and their accounts</p>
+        </div>
+        <div class="user-chip">
+            <div class="user-chip-avatar">SZ</div>
+            <div class="user-chip-info">
+                <strong>Saleh Zidane</strong>
+                <span>Farmer</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" style="margin-bottom:1.5rem;">
+        <div class="stat-card" onclick="showAll()">
+            <div class="stat-icon si-green"><i class="fas fa-users"></i></div>
+            <div><div class="stat-val" id="cAll">0</div><div class="stat-label">All Users</div></div>
+        </div>
+        <div class="stat-card" onclick="showActive()">
+            <div class="stat-icon si-blue"><i class="fas fa-user-check"></i></div>
+            <div><div class="stat-val" id="cActive">0</div><div class="stat-label">Active</div></div>
+        </div>
+        <div class="stat-card" onclick="showBlocked()">
+            <div class="stat-icon si-red"><i class="fas fa-user-slash"></i></div>
+            <div><div class="stat-val" id="cBlocked">0</div><div class="stat-label">Blocked</div></div>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrap">
+        <div class="search-inner">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search users…" id="searchInput" oninput="searchUsers()">
+        </div>
+    </div>
+
+    <!-- Users table -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Workers List</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Last Name</th>
+                            <th>First Name</th>
+                            <th>Email</th>
+                            <th>Password</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTbody"></tbody>
+                </table>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-green" onclick="openPopup()"><i class="fas fa-plus"></i> Add User</button>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- Add/Edit User Popup -->
+<div class="popup-overlay" id="userPopup">
+    <div class="popup-box">
+        <div class="popup-head">
+            <h3 id="popupTitle">Add New User</h3>
+            <button class="popup-close" onclick="closePopup()"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="popupErr" style="display:none;background:rgba(176,58,42,.08);border:1px solid rgba(176,58,42,.2);border-radius:8px;padding:.65rem 1rem;color:#b03a2a;font-size:.83rem;margin-bottom:.85rem;"></div>
+        
+        <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="lastName" placeholder="Last name">
+        </div>
+        <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="firstName" placeholder="First name">
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="email" placeholder="name@fellahdz.com">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="text" id="password" placeholder="Enter password">
+        </div>
+        <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" id="phone" placeholder="0550 123 456">
+        </div>
+        <div class="form-group">
+            <label>Status</label>
+            <select id="status">
+                <option value="Active">Active</option>
+                <option value="Blocked">Blocked</option>
+            </select>
+        </div>
+        
+        <div class="form-actions">
+            <button class="btn btn-outline" onclick="closePopup()">Cancel</button>
+            <button class="btn btn-green" id="saveBtn" onclick="saveUser()">
+                <i class="fas fa-save"></i> <span id="btnText">Save</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Credentials Card Popup (shown after adding new user) -->
+<div class="popup-overlay" id="credentialsPopup">
+    <div class="popup-box" style="max-width: 420px;">
+        <div class="popup-head">
+            <h3><i class="fas fa-check-circle" style="color: #22c55e;"></i> User Created Successfully!</h3>
+            <button class="popup-close" onclick="closeCredentialsPopup()"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="credentials-box">
+            <h4><i class="fas fa-envelope-open-text"></i> Worker Login Credentials</h4>
+            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 15px;">
+                Share these credentials with the new worker
+            </p>
+            
+            <div class="credential-item">
+                <div class="credential-label"><i class="fas fa-envelope"></i> Email</div>
+                <div id="credEmail" style="color: #0369a1; font-weight: bold; font-size: 1rem;"></div>
+            </div>
+            
+            <div class="credential-item">
+                <div class="credential-label"><i class="fas fa-lock"></i> Password</div>
+                <div id="credPassword" style="color: #dc2626; font-weight: bold; font-size: 1rem;"></div>
+            </div>
+        </div>
+        
+        <p style="text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 15px;">
+            <i class="fas fa-info-circle"></i> 
+            Copy and send via SMS / WhatsApp / Email
+        </p>
+        
+        <div class="form-actions">
+            <button class="btn btn-outline" onclick="copyCredentials()">
+                <i class="fas fa-copy"></i> Copy All
+            </button>
+            <button class="btn btn-green" onclick="closeCredentialsPopup()">
+                <i class="fas fa-check"></i> Done
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let users = [];
+let editId = null;
+let lastCreatedUser = null;
+
+window.addEventListener('load', () => {
+    loadFromDB();
+});
+
+async function loadFromDB() {
+    try {
+        const res = await fetch('admin/workers.php');
+        const data = await res.json();
+        if (data.success) {
+            data.workers.forEach(w => {
+                if (!users.find(u => u.id === w.id)) {
+                    users.push({
+                        id: w.id,
+                        lastName: w.last_name,
+                        firstName: w.first_name,
+                        email: w.email,
+                        password: '',       // plain-text unknown for DB users
+                        fromDB: true,       // flag: password is hashed in DB
+                        phone: w.phone || '',
+                        status: w.status.charAt(0).toUpperCase() + w.status.slice(1),
+                        role: w.role.charAt(0).toUpperCase() + w.role.slice(1)
+                    });
+                }
+            });
+            render();
+        }
+    } catch (e) {}
+}
+
+function render(data = users) {
+    document.getElementById('userTbody').innerHTML = data.map(u => {
+        const isFarmer = u.role === 'Farmer';
+        const statusBadge = u.status === 'Active'
+            ? '<span class="badge" style="background:rgba(44,95,65,.15);color:var(--pine);">● Active</span>'
+            : '<span class="badge" style="background:rgba(180,50,40,.1);color:#b43228;">● Blocked</span>';
+        return `
+        <tr style="${isFarmer ? 'background:rgba(201,106,42,.04);' : ''}">
+            <td><strong>${u.id}</strong></td>
+            <td><strong>${u.lastName}</strong></td>
+            <td>${u.firstName}${isFarmer ? ' 👨‍🌾' : ''}</td>
+            <td>${u.email}</td>
+            <td><span class="password-cell">${u.fromDB && !u.password ? '••••••••' : u.password}</span></td>
+            <td>${u.phone}</td>
+            <td>${statusBadge}</td>
+            <td style="display:flex;gap:.35rem;">
+                <button class="icon-btn icon-btn-edit" onclick="editUser(${u.id})"><i class="fas fa-edit"></i></button>
+                ${!isFarmer ? `<button class="icon-btn icon-btn-del" onclick="delUser(${u.id})"><i class="fas fa-trash"></i></button>` : ''}
+            </td>
+        </tr>`;
+    }).join('');
+    updateCounts();
+}
+
+function updateCounts() {
+    document.getElementById('cAll').textContent = users.length;
+    document.getElementById('cActive').textContent = users.filter(u => u.status === 'Active').length;
+    document.getElementById('cBlocked').textContent = users.filter(u => u.status === 'Blocked').length;
+}
+
+function showAll() { render(users); }
+function showActive() { render(users.filter(u => u.status === 'Active')); }
+function showBlocked() { render(users.filter(u => u.status === 'Blocked')); }
+
+function searchUsers() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    render(users.filter(u => 
+        u.lastName.toLowerCase().includes(q) || 
+        u.firstName.toLowerCase().includes(q) || 
+        u.email.toLowerCase().includes(q)
+    ));
+}
+
+function openPopup() {
+    editId = null;
+    document.getElementById('popupTitle').textContent = 'Add New User';
+    document.getElementById('btnText').textContent = 'Save';
+    ['lastName','firstName','email','password','phone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('status').value = 'Active';
+    document.getElementById('popupErr').style.display = 'none';
+    document.getElementById('userPopup').classList.add('open');
+}
+
+function closePopup() { 
+    document.getElementById('userPopup').classList.remove('open'); 
+}
+
+function closeCredentialsPopup() {
+    document.getElementById('credentialsPopup').classList.remove('open');
+}
+
+function showCredentials(email, password) {
+    document.getElementById('credEmail').textContent = email;
+    document.getElementById('credPassword').textContent = password;
+    document.getElementById('credentialsPopup').classList.add('open');
+}
+
+function copyCredentials() {
+    if (!lastCreatedUser) return;
+    const text = `🌾 FellahDZ Login Credentials\n\n📧 Email: ${lastCreatedUser.email}\n🔒 Password: ${lastCreatedUser.password}\n📱 Phone: ${lastCreatedUser.phone}\n\nLogin at: ${window.location.origin}/logiin.html`;
+    navigator.clipboard.writeText(text).then(() => {
+        notify('Credentials copied to clipboard!', 'success');
+    }).catch(() => {
+        notify('Failed to copy. Please copy manually.', 'error');
+    });
+}
+
+function editUser(id) {
+    const u = users.find(u => u.id === id);
+    if (!u) return;
+    editId = id;
+    document.getElementById('popupTitle').textContent = 'Edit User';
+    document.getElementById('btnText').textContent = 'Save';
+    document.getElementById('lastName').value = u.lastName;
+    document.getElementById('firstName').value = u.firstName;
+    document.getElementById('email').value = u.email;
+    document.getElementById('password').value = u.fromDB ? '' : u.password;
+    document.getElementById('password').placeholder = u.fromDB ? 'Leave blank to keep current password' : 'Enter password';
+    document.getElementById('phone').value = u.phone;
+    document.getElementById('status').value = u.status;
+    document.getElementById('popupErr').style.display = 'none';
+    document.getElementById('userPopup').classList.add('open');
+}
+
+async function saveUser() {
+    const lastName = document.getElementById('lastName').value.trim();
+    const firstName = document.getElementById('firstName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const status = document.getElementById('status').value;
+
+    if (!lastName || !firstName || !email || (!editId && !password) || !phone) {
+        showErr(editId ? 'Please fill all fields (password optional to keep current).' : 'Please fill all fields.');
+        return;
+    }
+
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    document.getElementById('btnText').textContent = 'Saving...';
+
+    const payload = {
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        phone: phone,
+        role: 'worker',
+        status: status.toLowerCase()
+    };
+
+    // Only include password in payload if provided
+    if (password) payload.password = password;
+
+    try {
+        if (editId) {
+            // Update existing user
+            payload.id = editId;
+            await fetch('admin/workers.php', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const i = users.findIndex(u => u.id === editId);
+            if (i > -1) {
+                const updatedPassword = password || users[i].password;
+                const stillFromDB = !password && users[i].fromDB;
+                users[i] = { ...users[i], lastName, firstName, email, password: updatedPassword, fromDB: stillFromDB, phone, status };
+            }
+            notify('User updated!', 'success');
+            closePopup();
+        } else {
+            // Add new user
+            const res = await fetch('admin/workers.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await res.json();
+            const newId = data.id || (users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1);
+            
+            const newUser = { id: newId, lastName, firstName, email, password, phone, status, role: 'Worker' };
+            users.push(newUser);
+            lastCreatedUser = newUser;
+            
+            notify('User added!', 'success');
+            closePopup();
+            
+            // Show credentials card popup after short delay
+            setTimeout(() => {
+                showCredentials(email, password);
+            }, 300);
+        }
+        
+        render();
+    } catch (e) {
+        // Fallback: save locally even if DB fails
+        if (editId) {
+            const i = users.findIndex(u => u.id === editId);
+            if (i > -1) {
+                const updatedPassword = password || users[i].password;
+                const stillFromDB = !password && users[i].fromDB;
+                users[i] = { ...users[i], lastName, firstName, email, password: updatedPassword, fromDB: stillFromDB, phone, status };
+            }
+        } else {
+            const newUser = { id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1, lastName, firstName, email, password, phone, status, role: 'Worker' };
+            users.push(newUser);
+            lastCreatedUser = newUser;
+        }
+        closePopup();
+        render();
+        notify(editId ? 'Updated locally' : 'Added locally', 'info');
+        
+        // Show credentials card even on DB error
+        if (!editId && lastCreatedUser) {
+            setTimeout(() => {
+                showCredentials(lastCreatedUser.email, lastCreatedUser.password);
+            }, 300);
+        }
+    } finally {
+        btn.disabled = false;
+        document.getElementById('btnText').textContent = 'Save';
+    }
+}
+
+async function delUser(id) {
+    if (!confirm('Delete this worker?')) return;
+    
+    try {
+        await fetch('admin/workers.php', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+    } catch (e) {}
+    
+    users = users.filter(u => u.id !== id);
+    render();
+    notify('User deleted', 'success');
+}
+
+async function doLogout() {
+    await fetch('logout.php');
+    window.location.href = 'logiin.html';
+}
+
+function showErr(msg) {
+    const el = document.getElementById('popupErr');
+    el.style.display = 'block';
+    el.textContent = msg;
+}
+
+function notify(msg, type) {
+    document.querySelectorAll('.notif').forEach(n => n.remove());
+    const n = document.createElement('div');
+    n.className = `notif notif-${type === 'success' ? 'success' : type === 'error' ? 'error' : 'info'}`;
+    n.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i> ${msg}`;
+    document.body.appendChild(n);
+    setTimeout(() => n.remove(), 3000);
+}
+
+// Close popups when clicking outside
+document.getElementById('userPopup').addEventListener('click', e => {
+    if (e.target === document.getElementById('userPopup')) closePopup();
+});
+
+document.getElementById('credentialsPopup').addEventListener('click', e => {
+    if (e.target === document.getElementById('credentialsPopup')) closeCredentialsPopup();
+});
+</script>
+</body>
+</html>

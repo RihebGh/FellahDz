@@ -1,0 +1,1216 @@
+<?php
+require_once 'auth-check.php';
+$user = checkAdmin();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipment & Seeds — FellahDZ</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+
+        /* ══════════════════════════════
+           DASHBOARD
+        ══════════════════════════════ */
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .dash-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 1rem;
+            box-shadow: var(--shadow-m);
+            transition: all .3s;
+        }
+        .dash-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,.12);
+        }
+
+        .dash-card-header,
+        .dash-card-left,
+        .dash-row {
+            display: flex;
+            align-items: center;
+        }
+        .dash-card-header { justify-content: space-between; margin-bottom: 1rem; }
+        .dash-card-left   { gap: 1rem; }
+        .dash-row         { justify-content: space-between; font-size: .85rem; color: var(--ash); margin-bottom: .5rem; }
+        .dash-row span:last-child { font-weight: 600; color: var(--forest); }
+
+        .dash-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .dash-icon.equipment   { background: rgba(201,106,42,.15); color: var(--terra); }
+        .dash-icon.seeds       { background: rgba(44,95,65,.15);   color: var(--pine); }
+        .dash-icon.fertilizers { background: rgba(201,106,42,.2);  color: var(--terra); }
+
+        .dash-title h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            color: var(--forest);
+            margin: 0;
+        }
+        .dash-title p       { font-size: .8rem; color: var(--ash); margin: .2rem 0 0; }
+        .dash-count .number { font-size: 2rem; font-weight: 700; color: var(--forest); line-height: 1; }
+        .dash-count .label  { font-size: .7rem; color: var(--ash); text-transform: uppercase; letter-spacing: .5px; }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0,0,0,.08);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width .5s;
+        }
+        .progress-fill.equipment   { background: linear-gradient(90deg, var(--terra-lt), var(--terra)); }
+        .progress-fill.seeds       { background: linear-gradient(90deg, #4ade80, var(--pine)); }
+        .progress-fill.fertilizers { background: linear-gradient(90deg, #fbbf24, var(--terra)); }
+
+        .status-badges {
+            display: flex;
+            gap: .5rem;
+            flex-wrap: wrap;
+            margin-bottom: .75rem;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .35rem .75rem;
+            border-radius: 20px;
+            font-size: .75rem;
+            font-weight: 600;
+        }
+        .status-badge.good   { background: rgba(44,95,65,.12);  color: var(--pine); }
+        .status-badge.maint  { background: rgba(201,106,42,.15); color: var(--terra); }
+        .status-badge.broken { background: rgba(180,50,40,.12);  color: #b43228; }
+
+        .dash-alert {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .75rem 1rem;
+            border-radius: 10px;
+            font-size: .85rem;
+            border: 1px solid;
+        }
+        .dash-alert.danger  { background: rgba(180,50,40,.08);  border-color: rgba(180,50,40,.2);  color: #b43228; }
+        .dash-alert.warning { background: rgba(201,106,42,.08); border-color: rgba(201,106,42,.2); color: var(--terra); }
+
+
+        /* ══════════════════════════════
+           CATEGORY NAV
+        ══════════════════════════════ */
+
+        .cat-nav {
+            display: flex;
+            gap: .75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .cat-btn {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            padding: .8rem 1.4rem;
+            background: var(--white);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            font-weight: 600;
+            color: var(--ash);
+            cursor: pointer;
+            transition: all .25s;
+        }
+        .cat-btn:hover,
+        .cat-btn.active {
+            border-color: var(--terra);
+            color: var(--terra);
+            background: rgba(201,106,42,.06);
+            box-shadow: 0 4px 16px rgba(201,106,42,.15);
+        }
+
+        .cat-btn .cicon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--parchment);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all .25s;
+        }
+        .cat-btn.active .cicon  { background: var(--terra); color: #fff; }
+        .cat-btn.active .carrow { transform: rotate(180deg); }
+
+        .cat-btn .cbadge {
+            background: var(--forest);
+            color: #fff;
+            font-size: .7rem;
+            font-weight: 700;
+            border-radius: 20px;
+            padding: .15rem .55rem;
+        }
+        .cat-btn .carrow { font-size: .72rem; margin-left: .2rem; transition: transform .3s; }
+
+
+        /* ══════════════════════════════
+           PANEL
+        ══════════════════════════════ */
+
+        .cat-panel {
+            display: none;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            margin-bottom: 1.25rem;
+            box-shadow: var(--shadow-m);
+            animation: panelIn .3s ease;
+        }
+        .cat-panel.open { display: block; }
+
+        @keyframes panelIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .cpanel-head {
+            background: var(--forest);
+            padding: 1.2rem 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 3px solid var(--terra);
+        }
+        .cpanel-head.seed-head { background: var(--pine); }
+        .cpanel-head-left      { display: flex; align-items: center; gap: .9rem; }
+
+        .cpanel-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--terra);
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: #fff;
+        }
+        .cpanel-icon.seed-icon { background: rgba(255,255,255,.2); }
+
+        .cpanel-title h2 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--cream); }
+        .cpanel-title p  { font-size: .8rem; color: rgba(200,221,208,.6); margin-top: .1rem; }
+
+        .cpanel-close,
+        .popup-close {
+            background: rgba(255,255,255,.1);
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .2s;
+        }
+        .cpanel-close       { color: var(--cream); }
+        .popup-close        { color: #fff; }
+        .cpanel-close:hover,
+        .popup-close:hover  { background: rgba(255,255,255,.2); }
+
+        .machine-grid {
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+            gap: 1.1rem;
+        }
+
+
+        /* ══════════════════════════════
+           ITEM CARD
+        ══════════════════════════════ */
+
+        .mcard {
+            background: var(--cream);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: all .25s;
+        }
+        .mcard:hover {
+            border-color: var(--terra-lt);
+            box-shadow: var(--shadow-m);
+            transform: translateY(-2px);
+        }
+
+        .mcard-img-wrap {
+            position: relative;
+            width: 100%;
+            height: 155px;
+            overflow: hidden;
+        }
+        .mcard-img {
+            width: 100%;
+            height: 155px;
+            object-fit: cover;
+            display: block;
+        }
+        .mcard-img-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            opacity: 0;
+            transition: opacity .2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: .4rem;
+            color: #fff;
+            font-size: .8rem;
+            font-weight: 600;
+        }
+        .mcard-img-overlay i                   { font-size: 1.4rem; }
+        .mcard-img-wrap:hover .mcard-img-overlay { opacity: 1; }
+
+        .mcard-head {
+            background: rgba(27,58,43,.07);
+            padding: .9rem 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+        .mcard-head-left { display: flex; align-items: center; gap: .7rem; }
+
+        .mcard-emoji { font-size: 1.5rem; }
+        .mcard-name  { font-weight: 700; font-size: .95rem; color: var(--forest); }
+        .mcard-sub   { font-size: .72rem; color: var(--ash); margin-top: .1rem; }
+
+        .st-badge,
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            border-radius: 20px;
+        }
+        .st-badge     { padding: .3rem .75rem; font-size: .75rem; font-weight: 700; }
+        .status-badge { padding: .35rem .75rem; font-size: .75rem; font-weight: 600; }
+
+        .st-good, .st-ok { background: rgba(44,95,65,.15);   color: var(--pine); }
+        .st-bad,  .st-low { background: rgba(180,50,40,.1);  color: #b43228; }
+        .st-maint         { background: rgba(201,106,42,.12); color: var(--terra); }
+
+        .mcard-body {
+            padding: 1rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: .6rem;
+        }
+        .mcard-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: .87rem;
+        }
+        .mcard-row span:first-child {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            color: var(--ash);
+            font-weight: 500;
+        }
+        .mcard-row span:first-child i { color: var(--terra); font-size: .83rem; }
+        .mcard-row span:last-child    { font-weight: 600; color: var(--ink); }
+
+        .mcard-banner {
+            padding: .5rem 1.2rem;
+            border-top: 1px solid;
+            font-size: .8rem;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .mcard-banner.danger  { background: rgba(180,50,40,.1);  border-color: rgba(180,50,40,.25);  color: #b43228; }
+        .mcard-banner.warning { background: rgba(201,106,42,.1); border-color: rgba(201,106,42,.25); color: var(--terra); }
+
+        .mcard-foot {
+            padding: .75rem 1.2rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: .5rem;
+            background: rgba(255,255,255,.5);
+        }
+
+        .expiry-badge {
+            display: inline-block;
+            padding: .15rem .5rem;
+            border-radius: 6px;
+            font-size: .72rem;
+            font-weight: 700;
+            margin-left: .4rem;
+        }
+        .expiry-badge.expired { background: rgba(180,50,40,.15); color: #b43228; }
+        .expiry-badge.soon    { background: rgba(201,106,42,.15); color: var(--terra); }
+
+
+        /* ══════════════════════════════
+           SECTION TITLE
+        ══════════════════════════════ */
+
+        .section-title     { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+        .section-title-bar { width: 4px; height: 26px; border-radius: 2px; }
+        .section-title h2  { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--forest); }
+
+
+        /* ══════════════════════════════
+           NOTIFICATIONS
+        ══════════════════════════════ */
+
+        .notif {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: .6rem 1rem;
+            border-radius: 8px;
+            font-size: .85rem;
+            font-weight: 600;
+            z-index: 9999;
+            animation: slideIn .3s ease;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            max-width: 300px;
+        }
+        .notif-success { background: rgba(44,95,65,.95);  color: #fff; box-shadow: 0 4px 16px rgba(44,95,65,.3); }
+        .notif-info    { background: rgba(201,106,42,.95); color: #fff; box-shadow: 0 4px 16px rgba(201,106,42,.3); }
+
+        @keyframes slideIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateY(0);    opacity: 1; }
+            to   { transform: translateY(100%); opacity: 0; }
+        }
+
+
+        /* ══════════════════════════════
+           OVERLAYS  (alert + popup shared base)
+        ══════════════════════════════ */
+
+        .alert-overlay,
+        .popup-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .alert-overlay.open,
+        .popup-overlay.open { display: flex; }
+
+        .alert-box,
+        .popup-box {
+            background: var(--white);
+            border-radius: 18px;
+            width: 90%;
+            max-width: 500px;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0,0,0,.4);
+            animation: popIn .3s ease;
+        }
+        .alert-box { max-height: 80vh; }
+        .popup-box { max-height: 85vh; }
+
+        @keyframes popIn {
+            from { transform: scale(.9); opacity: 0; }
+            to   { transform: scale(1);  opacity: 1; }
+        }
+
+        /* ── Alert modal ── */
+        .alert-head {
+            background: #b43228;
+            padding: 1.25rem 1.5rem;
+            border-radius: 18px 18px 0 0;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+        }
+        .alert-head i  { font-size: 1.5rem; color: #fff; }
+        .alert-head h3 { margin: 0; color: #fff; font-family: 'Playfair Display', serif; font-size: 1.2rem; }
+
+        .alert-body     { padding: 1.5rem; }
+        .alert-body > p { margin: 0 0 1rem; color: var(--ink); font-size: .9rem; }
+        .alert-category { margin-bottom: 1.25rem; }
+
+        .alert-category-title {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            font-weight: 700;
+            font-size: .9rem;
+            color: var(--forest);
+            margin-bottom: .75rem;
+            padding-bottom: .5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .75rem;
+            border-radius: 10px;
+            margin-bottom: .5rem;
+            border-left: 4px solid;
+        }
+        .alert-item.danger  { background: rgba(180,50,40,.06);  border-color: #b43228; }
+        .alert-item.danger i  { color: #b43228; }
+        .alert-item.warning { background: rgba(201,106,42,.06); border-color: var(--terra); }
+        .alert-item.warning i { color: var(--terra); }
+
+        .alert-item-name   { font-weight: 600; color: var(--forest); font-size: .9rem; }
+        .alert-item-detail { font-size: .8rem; color: var(--ash); margin-top: .2rem; }
+
+        .alert-actions {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            background: var(--parchment);
+            border-radius: 0 0 18px 18px;
+        }
+        .btn-alert-close {
+            padding: .7rem 1.5rem;
+            background: var(--forest);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s;
+        }
+        .btn-alert-close:hover { background: var(--pine); }
+
+        /* ── Popup ── */
+        .popup-head {
+            background: var(--forest);
+            padding: 1.25rem 1.5rem;
+            border-radius: 18px 18px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .popup-head h3 { margin: 0; color: #fff; font-family: 'Playfair Display', serif; font-size: 1.2rem; }
+
+        .form-group {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .form-group label {
+            display: block;
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--forest);
+            margin-bottom: .5rem;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: .75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            background: var(--white);
+            transition: border-color .2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus { outline: none; border-color: var(--terra); }
+
+        .form-actions { padding: 1rem 1.5rem; display: flex; gap: .75rem; justify-content: flex-end; }
+
+        .btn {
+            padding: .75rem 1.5rem;
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+            border: none;
+        }
+        .btn-green         { background: var(--forest); color: #fff; }
+        .btn-green:hover   { background: var(--pine); }
+        .btn-outline       { background: transparent; color: var(--forest); border: 2px solid var(--border); }
+        .btn-outline:hover { border-color: var(--white); color: var(--white); }
+
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fas fa-seedling"></i></div>
+        <div class="sidebar-logo-text">Fellah<span>DZ</span></div>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="homepage.html"><i class="fas fa-home"></i> Home</a></li>
+        <li><a href="CropManagement.html"><i class="fas fa-leaf"></i> Crop Management</a></li>
+        <li><a href="user-management-farmer.html"><i class="fas fa-users"></i> User Management</a></li>
+        <li><a href="activities.html"><i class="fas fa-tractor"></i> Activities</a></li>
+        <li><a href="equipment_seeds.html" class="active"><i class="fas fa-tools"></i> Equipment & Seeds</a></li>
+        <li><a href="settings-farmer.html"><i class="fas fa-cog"></i> Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+        <a href="home.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+
+<main class="main">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1><i class="fas fa-tools" style="color:var(--terra);margin-right:.5rem;"></i>Equipment &amp; Seeds</h1>
+            <p>Manage your farm equipment, seeds inventory, and fertilizer stock</p>
+        </div>
+        <div class="user-chip">
+            <div class="user-chip-avatar">SZ</div>
+            <div class="user-chip-info"><strong>Saleh Zidane</strong><span>Farmer</span></div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="dashboard-grid">
+        <!-- Equipment Card -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <div class="dash-card-left">
+                    <div class="dash-icon equipment"><i class="fas fa-cogs"></i></div>
+                    <div class="dash-title"><h3>Equipment</h3><p>Machines & Tools Status</p></div>
+                </div>
+                <div class="dash-count"><div class="number" id="dashEquipTotal">0</div><div class="label">Total Items</div></div>
+            </div>
+            <div class="dash-row"><span>Operational</span><span id="dashEquipPercent">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill equipment" id="dashEquipBar" style="width:0%"></div></div>
+            <div class="status-badges">
+                <span class="status-badge good"><i class="fas fa-circle"></i> <span id="dashEquipGood">0</span> Good</span>
+                <span class="status-badge maint"><i class="fas fa-wrench"></i> <span id="dashEquipMaint">0</span> Maint</span>
+                <span class="status-badge broken"><i class="fas fa-times-circle"></i> <span id="dashEquipBroken">0</span> Broken</span>
+            </div>
+            <div id="dashEquipAlert"></div>
+        </div>
+
+        <!-- Seeds Card -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <div class="dash-card-left">
+                    <div class="dash-icon seeds"><i class="fas fa-seedling"></i></div>
+                    <div class="dash-title"><h3>Seeds Stock</h3><p>Available Seed Varieties</p></div>
+                </div>
+                <div class="dash-count"><div class="number" id="dashSeedTotal">0</div><div class="label">Varieties</div></div>
+            </div>
+            <div class="dash-row"><span>Stock Health</span><span id="dashSeedPercent">100%</span></div>
+            <div class="progress-bar"><div class="progress-fill seeds" id="dashSeedBar" style="width:100%"></div></div>
+            <div id="dashSeedAlert"></div>
+        </div>
+
+        <!-- Fertilizers Card -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <div class="dash-card-left">
+                    <div class="dash-icon fertilizers"><i class="fas fa-flask"></i></div>
+                    <div class="dash-title"><h3>Fertilizers</h3><p>Stock Levels & Types</p></div>
+                </div>
+                <div class="dash-count"><div class="number" id="dashFertTotal">0</div><div class="label">Products</div></div>
+            </div>
+            <div class="dash-row"><span>Inventory Level</span><span id="dashFertLevel" class="level-text good">Good</span></div>
+            <div class="progress-bar"><div class="progress-fill fertilizers" id="dashFertBar" style="width:75%"></div></div>
+            <div id="dashFertAlert"></div>
+        </div>
+    </div>
+
+    <!-- EQUIPMENT SECTION -->
+    <div class="section-title">
+        <div class="section-title-bar" style="background:var(--terra);"></div>
+        <h2>Equipment Categories</h2>
+    </div>
+    <div class="cat-nav" id="equipNav"></div>
+    <div id="equipPanels"></div>
+
+    <!-- SEEDS SECTION -->
+    <div class="section-title" style="margin-top:2.5rem;">
+        <div class="section-title-bar" style="background:var(--pine);"></div>
+        <h2>Seed Categories</h2>
+    </div>
+    <div class="cat-nav" id="seedNav"></div>
+    <div id="seedPanels"></div>
+
+    <!-- FERTILIZERS SECTION -->
+    <div class="section-title" style="margin-top:2.5rem;">
+        <div class="section-title-bar" style="background:var(--terra);"></div>
+        <h2>Fertilizer Categories</h2>
+    </div>
+    <div class="cat-nav" id="fertNav"></div>
+    <div id="fertPanels"></div>
+
+</main>
+
+<!-- EQUIPMENT POPUP -->
+<div class="popup-overlay" id="equipPopup">
+    <div class="popup-box">
+        <div class="popup-head">
+            <h3 id="equipPopupTitle">Add Equipment</h3>
+            <button class="popup-close" onclick="closePopup('equipPopup')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="form-group"><label>Name</label><input type="text" id="eName" placeholder="e.g. Drip Line A"></div>
+        <div class="form-group"><label>Category</label>
+            <select id="eType">
+                <option>Irrigation Machine</option><option>Tractor</option><option>Harvester</option>
+                <option>Seeder</option><option>Sprayer</option><option>Pump</option><option>Plow</option><option>Other</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Status</label>
+            <select id="eStatus"><option>Good</option><option>Broken</option><option>Maintenance</option></select>
+        </div>
+        <div class="form-group"><label>Maintenance Date</label><input type="date" id="eMaint"></div>
+        <div class="form-group"><label>Location</label><input type="text" id="eLoc" placeholder="e.g. Field 1"></div>
+        <div class="form-actions">
+            <button class="btn btn-outline" onclick="closePopup('equipPopup')">Cancel</button>
+            <button class="btn btn-green" onclick="saveEquip()"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- SEED POPUP -->
+<div class="popup-overlay" id="seedPopup">
+    <div class="popup-box">
+        <div class="popup-head">
+            <h3 id="seedPopupTitle">Add Seed</h3>
+            <button class="popup-close" onclick="closePopup('seedPopup')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="form-group"><label>Name</label><input type="text" id="sName" placeholder="e.g. Wheat"></div>
+        <div class="form-group"><label>Category</label>
+            <select id="sType"><option>Cereal</option><option>Legume</option><option>Vegetable</option><option>Fruit</option><option>Other</option></select>
+        </div>
+        <div class="form-group"><label>Quantity (Kg)</label><input type="text" id="sQty" placeholder="e.g. 500"></div>
+        <div class="form-group"><label>Expiration</label><input type="date" id="sExp"></div>
+        <div class="form-group"><label>Location</label><input type="text" id="sLoc" placeholder="e.g. Warehouse 1"></div>
+        <div class="form-actions">
+            <button class="btn btn-outline" onclick="closePopup('seedPopup')">Cancel</button>
+            <button class="btn btn-green" onclick="saveSeed()"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- FERTILIZER POPUP -->
+<div class="popup-overlay" id="fertPopup">
+    <div class="popup-box">
+        <div class="popup-head">
+            <h3 id="fertPopupTitle">Add Fertilizer</h3>
+            <button class="popup-close" onclick="closePopup('fertPopup')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="form-group"><label>Name</label><input type="text" id="fName" placeholder="e.g. NPK 20-20-20"></div>
+        <div class="form-group"><label>Category</label>
+            <select id="fType"><option>Organic</option><option>Chemical</option><option>Mineral</option><option>Compost</option><option>Liquid</option></select>
+        </div>
+        <div class="form-group"><label>Quantity (Kg)</label><input type="text" id="fQty" placeholder="e.g. 50"></div>
+        <div class="form-group"><label>N-P-K Ratio</label><input type="text" id="fNPK" placeholder="e.g. 20-20-20"></div>
+        <div class="form-group"><label>Expiration</label><input type="date" id="fExp"></div>
+        <div class="form-group"><label>Location</label><input type="text" id="fLoc" placeholder="e.g. Storage A"></div>
+        <div class="form-actions">
+            <button class="btn btn-outline" onclick="closePopup('fertPopup')">Cancel</button>
+            <button class="btn btn-green" onclick="saveFert()"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ALERT MODAL -->
+<div class="alert-overlay" id="alertModal">
+    <div class="alert-box">
+        <div class="alert-head">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Stock, Expiry & Equipment Alert</h3>
+        </div>
+        <div class="alert-body">
+            <p>The following items require your attention:</p>
+            <div id="alertContent"></div>
+        </div>
+        <div class="alert-actions">
+            <button class="btn-alert-close" onclick="closeAlert()">Got it</button>
+        </div>
+    </div>
+</div>
+
+<script>
+//STATE
+let equipment = [], seeds = [], fertilizers = [];
+let editEqId = null, editSdId = null, editFtId = null;
+let alertShown = false;
+
+//EMOJI MAPS
+const equipEmoji = { 'Irrigation Machine':'💧','Tractor':'🚜','Harvester':'🌾','Seeder':'🌱','Sprayer':'💨','Pump':'⚙️','Plow':'🔧','Other':'🛠️' };
+const seedEmoji  = { 'Corn':'🌽','Wheat':'🌾','Barley':'🌾','Tomato':'🍅','Lettuce':'🥬','Potato':'🥔','Carrot':'🥕','Lentil':'🫘','Bean':'🫘','Apricots':'🍑','Cucumber':'🥒','Grapes':'🍇','Onion':'🧅','Pepper':'🫑' };
+const fertEmoji  = { 'Organic':'🍂','Chemical':'⚗️','Mineral':'⛏️','Compost':'🪱','Liquid':'💧' };
+
+//IMAGE MAPS  (name → file, type → fallback)
+const equipImagesByName = {
+    'Tractor A':'pictures/trator A.jpg', 'Tractor B':'pictures/tractor B.jpg',
+    'Drip Line B':'pictures/Drip Line B.jpg', 'Irrigation Pump A':'pictures/Irrigation Pump A.jpg',
+    'Sprinkler Set C':'pictures/Sprinkler set C.jpg', 'Harvester X':'pictures/Hervester.jpg',
+    'Seeder Pro':'pictures/Seeder Pro.jpg', 'Pesticides Sprayer':'pictures/Pesticides Sprayer.jpg',
+};
+const equipImagesByType = {
+    'Irrigation Machine':'pictures/Drip Line B.jpg', 'Pump':'pictures/Irrigation Pump A.jpg',
+    'Other':'pictures/Sprinkler set C.jpg', 'Tractor':'pictures/trator A.jpg',
+    'Harvester':'pictures/Hervester Y.jpg', 'Seeder':'pictures/Seeder Pro.jpg',
+    'Sprayer':'pictures/Pesticides Sprayer.jpg', 'Plow':'pictures/Seeder Pro.jpg',
+};
+const seedImagesByName = {
+    'Apricots':'pictures/Apricots.jpg', 'Barley':'pictures/Barley.jpg', 'Beans':'pictures/Beans.jpg',
+    'Carrot':'pictures/Carrot.jpg', 'Corn':'pictures/Corn.jpg', 'Cucumber':'pictures/Cucumber.jpg',
+    'Grapes':'pictures/Grapes.jpg', 'Lettuce':'pictures/Luttuce.jpg', 'Lentil':'pictures/Lentil.jpg',
+    'Onion':'pictures/Onion.jpg', 'Pepper':'pictures/Pepper.jpg', 'Potato':'pictures/Potato.jpg',
+    'Tomato':'pictures/Tomato.jpg', 'Wheat':'pictures/Wheat.jpg',
+};
+const seedImagesByType = { 'Cereal':'pictures/Wheat.jpg','Legume':'pictures/Beans.jpg','Vegetable':'pictures/Tomato.jpg','Fruit':'pictures/Apricots.jpg' };
+const fertImagesByName = {
+    'Urea':'pictures/Urea 46-0-0.jpg', 'Urea 46-0-0':'pictures/Urea 46-0-0.jpg',
+    'NPK':'pictures/NPK 20-20-20.jpg', 'NPK 20-20-20':'pictures/NPK 20-20-20.jpg',
+    'Bone Meal':'pictures/Bone Meal.jpg', 'Organic Compost':'pictures/Organic compost.jpg',
+    'Fish Emulsion':'pictures/Fish Emulsion.jpg',
+};
+const fertImagesByType = { 'Organic':'pictures/Organic compost.jpg','Chemical':'pictures/NPK 20-20-20.jpg','Mineral':'pictures/Urea 46-0-0.jpg','Compost':'pictures/Organic compost.jpg','Liquid':'pictures/Fish Emulsion.jpg' };
+
+//HELPERS
+const fmtDate = d => d ? new Date(d).toLocaleDateString('en-GB') : '—';
+const numQty  = q => { const n = parseFloat(String(q||0).replace(/[^0-9.]/g,'')); return isNaN(n) ? 0 : n; };
+
+function expiryInfo(dateStr) {
+    if (!dateStr) return { daysLeft:null, isExpired:false, isSoon:false };
+    const today = new Date(); today.setHours(0,0,0,0);
+    const daysLeft = Math.ceil((new Date(dateStr) - today) / 86400000);
+    return { daysLeft, isExpired: daysLeft < 0, isSoon: daysLeft >= 0 && daysLeft <= 30 };
+}
+
+function expiryBadgeHtml(info) {
+    if (info.isExpired) return `<span class="expiry-badge expired"><i class="fas fa-times-circle"></i> Expired</span>`;
+    if (info.isSoon)    return `<span class="expiry-badge soon"><i class="fas fa-clock"></i> ${info.daysLeft}d left</span>`;
+    return '';
+}
+
+function stBadge(s) {
+    return { Good:`<span class="st-badge st-good"><i class="fas fa-circle-check"></i>Good</span>`,
+             Broken:`<span class="st-badge st-bad"><i class="fas fa-circle-xmark"></i>Broken</span>`,
+             Maintenance:`<span class="st-badge st-maint"><i class="fas fa-wrench"></i>Maintenance</span>` }[s] || s;
+}
+
+// Image lookup: exact name → case-insensitive → partial → type fallback
+function lookupImage(name, byName, byType, typeFallback) {
+    if (!name) return byType[typeFallback];
+    if (byName[name]) return byName[name];
+    const lower = name.toLowerCase();
+    for (const key in byName)
+        if (key.toLowerCase() === lower || lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower))
+            return byName[key];
+    return byType[typeFallback];
+}
+const getEquipImage = (name, type) => lookupImage(name, equipImagesByName, equipImagesByType, type) || equipImagesByType['Other'];
+const getSeedImage  = (name, type) => lookupImage(name, seedImagesByName,  seedImagesByType,  type) || seedImagesByType['Cereal'];
+const getFertImage  = (name, type) => lookupImage(name, fertImagesByName,  fertImagesByType,  type) || fertImagesByType['Organic'];
+
+const cardImg = (kind, item) => {
+    const url = kind==='equip' ? getEquipImage(item.name,item.type) : kind==='seed' ? getSeedImage(item.name,item.type) : getFertImage(item.name,item.type);
+    return `<div class="mcard-img-wrap"><img class="mcard-img" src="${url}" alt="${item.name||item.type}" onerror="this.src='pictures/Wheat.jpg'"></div>`;
+};
+
+const cardBtns = (editFn, delFn, id) => `
+    <div class="mcard-foot">
+        <button class="btn btn-outline" style="padding:.5rem 1rem;font-size:.82rem;" onclick="${editFn}(${id})"><i class="fas fa-edit"></i>Edit</button>
+        <button class="btn" style="padding:.5rem 1rem;font-size:.82rem;background:rgba(180,50,40,.1);color:#b43228;border:none;" onclick="${delFn}(${id})"><i class="fas fa-trash"></i>Del</button>
+    </div>`;
+
+const stockBanner = (exp, isLow, qty) => {
+    if (exp.isExpired) return `<div class="mcard-banner danger"><i class="fas fa-ban"></i> Expired — replace immediately</div>`;
+    if (exp.isSoon)    return `<div class="mcard-banner warning"><i class="fas fa-clock"></i> Expires in ${exp.daysLeft} day${exp.daysLeft!==1?'s':''}</div>`;
+    if (isLow)         return `<div class="mcard-banner danger"><i class="fas fa-exclamation-triangle"></i> Low stock! Only ${qty} Kg remaining</div>`;
+    return '';
+};
+
+//BUILD CATEGORIES (shared)
+function buildCategories(items, navId, panelsId, prefix, headClass, iconClass, buildCard, addLabel, openFn) {
+    const groups = {};
+    items.forEach(item => { (groups[item.type] = groups[item.type]||[]).push(item); });
+
+    const nav = document.getElementById(navId), panels = document.getElementById(panelsId);
+    nav.innerHTML = panels.innerHTML = '';
+
+    Object.keys(groups).forEach((type, i) => {
+        const grpItems = groups[type];
+        const id = prefix + type.replace(/\s+/g,'-').toLowerCase();
+        const icon = buildCard.icon(type);
+        const isFirst = i === 0;
+
+        nav.innerHTML += `
+            <button class="cat-btn${isFirst?' active':''}" data-id="${id}" data-group="${prefix}" onclick="toggleCat('${id}','${prefix}',this)">
+                <div class="cicon">${icon}</div>${type}
+                <span class="cbadge">${grpItems.length}</span>
+                <i class="fas fa-chevron-down carrow"></i>
+            </button>`;
+
+        panels.innerHTML += `
+            <div class="cat-panel${isFirst?' open':''}" id="${id}">
+                <div class="cpanel-head ${headClass}">
+                    <div class="cpanel-head-left">
+                        <div class="cpanel-icon ${iconClass}">${icon}</div>
+                        <div class="cpanel-title"><h2>${type}</h2><p>${buildCard.subtitle(grpItems.length)}</p></div>
+                    </div>
+                    <button class="cpanel-close" onclick="closeCat('${id}','${prefix}')"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="machine-grid">${grpItems.map(item => buildCard.card(item, type)).join('')}</div>
+            </div>`;
+    });
+
+    nav.innerHTML += `<button class="cat-btn" style="border-style:dashed;" onclick="${openFn}"><div class="cicon" style="background:transparent;border:1.5px dashed var(--border);">＋</div>${addLabel}</button>`;
+}
+
+//Build Functions 
+function buildEquip() {
+    buildCategories(equipment, 'equipNav', 'equipPanels', 'ep-', '', '', {
+        icon: type => equipEmoji[type]||'⚙️',
+        subtitle: n => `${n} machine${n!==1?'s':''}`,
+        card: (e, type) => `<div class="mcard">
+            ${cardImg('equip', e)}
+            <div class="mcard-head">
+                <div class="mcard-head-left">
+                    <span class="mcard-emoji">${equipEmoji[type]||'⚙️'}</span>
+                    <div><div class="mcard-name">${e.name}</div><div class="mcard-sub">#${String(e.id).padStart(3,'0')} · ${e.location}</div></div>
+                </div>
+                ${stBadge(e.status)}
+            </div>
+            <div class="mcard-body">
+                <div class="mcard-row"><span><i class="fas fa-wrench"></i>Maintenance</span><span>${fmtDate(e.maintenance)}</span></div>
+                <div class="mcard-row"><span><i class="fas fa-map-marker-alt"></i>Location</span><span>${e.location}</span></div>
+            </div>
+            ${cardBtns('editEquip','delEquip',e.id)}
+        </div>`
+    }, 'New Equipment', "openEquipPopup('')");
+}
+
+function buildSeeds() {
+    buildCategories(seeds, 'seedNav', 'seedPanels', 'sp-', 'seed-head', 'seed-icon', {
+        icon: () => `<i class="fas fa-leaf" style="color:var(--pine);font-size:.85rem;"></i>`,
+        subtitle: n => `${n} variet${n!==1?'ies':'y'} in stock`,
+        card: (s) => {
+            const qty = numQty(s.quantity), isLow = qty < 30, exp = expiryInfo(s.expiration);
+            return `<div class="mcard">
+                ${cardImg('seed', s)}
+                <div class="mcard-head">
+                    <div class="mcard-head-left">
+                        <span class="mcard-emoji">${seedEmoji[s.name]||'🌱'}</span>
+                        <div><div class="mcard-name">${s.name}</div><div class="mcard-sub">${s.type} · #${String(s.id).padStart(3,'0')}</div></div>
+                    </div>
+                    <span class="st-badge ${isLow?'st-low':'st-good'}" style="${isLow?'':'background:rgba(44,95,65,.1);color:var(--pine);'}"><i class="fas fa-box"></i>${qty} Kg</span>
+                </div>
+                <div class="mcard-body">
+                    <div class="mcard-row"><span><i class="fas fa-calendar-times"></i>Expiration</span><span>${fmtDate(s.expiration)}${expiryBadgeHtml(exp)}</span></div>
+                    <div class="mcard-row"><span><i class="fas fa-map-marker-alt"></i>Location</span><span>${s.location}</span></div>
+                </div>
+                ${stockBanner(exp, isLow, qty)}
+                ${cardBtns('editSeed','delSeed',s.id)}
+            </div>`;
+        }
+    }, 'New Seed', "openSeedPopup('')");
+}
+
+function buildFerts() {
+    buildCategories(fertilizers, 'fertNav', 'fertPanels', 'fp-', 'fert-head', 'fert-icon', {
+        icon: type => fertEmoji[type]||'🧪',
+        subtitle: n => `${n} item${n!==1?'s':''} in stock`,
+        card: (f, type) => {
+            const qty = numQty(f.quantity), isLow = qty < 30, exp = expiryInfo(f.expiration);
+            return `<div class="mcard">
+                ${cardImg('fert', f)}
+                <div class="mcard-head">
+                    <div class="mcard-head-left">
+                        <span class="mcard-emoji">${fertEmoji[type]||'🧪'}</span>
+                        <div><div class="mcard-name">${f.name}</div><div class="mcard-sub">${f.type} · #${String(f.id).padStart(3,'0')}</div></div>
+                    </div>
+                    <span class="st-badge ${isLow?'st-low':'st-ok'}" style="${isLow?'':'background:rgba(201,106,42,.15);color:var(--terra);'}"><i class="fas fa-box"></i>${qty} Kg</span>
+                </div>
+                <div class="mcard-body">
+                    <div class="mcard-row"><span><i class="fas fa-flask"></i>N-P-K</span><span>${f.npk}</span></div>
+                    <div class="mcard-row"><span><i class="fas fa-calendar-times"></i>Expiration</span><span>${fmtDate(f.expiration)}${expiryBadgeHtml(exp)}</span></div>
+                    <div class="mcard-row"><span><i class="fas fa-map-marker-alt"></i>Location</span><span>${f.location}</span></div>
+                </div>
+                ${stockBanner(exp, isLow, qty)}
+                ${cardBtns('editFert','delFert',f.id)}
+            </div>`;
+        }
+    }, 'New Fertilizer', "openFertPopup('')");
+}
+
+//PANEL TOGGLE / CLOSE
+function toggleCat(id, group, btn) {
+    const panel = document.getElementById(id);
+    const isOpen = panel.classList.contains('open');
+    const containerMap = { 'ep-':'equipPanels', 'sp-':'seedPanels', 'fp-':'fertPanels' };
+    document.querySelectorAll(`[data-group="${group}"]`).forEach(b => b.classList.remove('active'));
+    document.querySelectorAll(`#${containerMap[group]} .cat-panel`).forEach(p => p.classList.remove('open'));
+    if (!isOpen) { panel.classList.add('open'); btn?.classList.add('active'); panel.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+}
+const closeCat   = (id, group) => { document.getElementById(id).classList.remove('open'); document.querySelectorAll(`[data-group="${group}"][data-id="${id}"]`).forEach(b => b.classList.remove('active')); };
+const closePopup = id => document.getElementById(id).classList.remove('open');
+const closeAlert = () => document.getElementById('alertModal').classList.remove('open');
+
+//POPUPS — OPEN / EDIT / SAVE / DELETE
+
+// Generic helper: set multiple field values at once
+const setFields = fields => Object.entries(fields).forEach(([id, val]) => document.getElementById(id).value = val ?? '');
+const openPopup = id => document.getElementById(id).classList.add('open');
+
+function openEquipPopup(type) {
+    editEqId = null;
+    document.getElementById('equipPopupTitle').textContent = 'Add Equipment';
+    setFields({ eName:'', eLoc:'', eType: type||'Irrigation Machine', eStatus:'Good', eMaint:'' });
+    openPopup('equipPopup');
+}
+function openSeedPopup(type) {
+    editSdId = null;
+    document.getElementById('seedPopupTitle').textContent = 'Add Seed';
+    setFields({ sName:'', sQty:'', sLoc:'', sType: type||'Cereal', sExp:'' });
+    openPopup('seedPopup');
+}
+function openFertPopup(type) {
+    editFtId = null;
+    document.getElementById('fertPopupTitle').textContent = 'Add Fertilizer';
+    setFields({ fName:'', fQty:'', fNPK:'', fLoc:'', fType: type||'Organic', fExp:'' });
+    openPopup('fertPopup');
+}
+
+function editEquip(id) {
+    const e = equipment.find(e => e.id===id); if (!e) return;
+    editEqId = id;
+    document.getElementById('equipPopupTitle').textContent = 'Edit Equipment';
+    setFields({ eName:e.name, eType:e.type, eStatus:e.status, eMaint:e.maintenance, eLoc:e.location });
+    openPopup('equipPopup');
+}
+function editSeed(id) {
+    const s = seeds.find(s => s.id===id); if (!s) return;
+    editSdId = id;
+    document.getElementById('seedPopupTitle').textContent = 'Edit Seed';
+    setFields({ sName:s.name, sType:s.type, sQty:s.quantity, sExp:s.expiration, sLoc:s.location });
+    openPopup('seedPopup');
+}
+function editFert(id) {
+    const f = fertilizers.find(f => f.id===id); if (!f) return;
+    editFtId = id;
+    document.getElementById('fertPopupTitle').textContent = 'Edit Fertilizer';
+    setFields({ fName:f.name, fType:f.type, fQty:f.quantity, fNPK:f.npk, fExp:f.expiration, fLoc:f.location });
+    openPopup('fertPopup');
+}
+
+//API — SAVE / DELETE
+const apiFetch = (url, method, body) =>
+    fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r => r.json());
+
+// Generic save: reads field IDs, calls API, notifies, reloads
+async function apiSave(url, editId, body, label, popupId) {
+    try {
+        const data = await apiFetch(url, editId ? 'PUT' : 'POST', editId ? { id: editId, ...body } : body);
+        data.success || data.id
+            ? (notify(`${label} ${editId ? 'updated' : 'saved'}!`, 'success'), await loadData())
+            : notify(data.error || 'Operation failed', 'info');
+    } catch(e) { notify('Connection failed', 'info'); }
+    closePopup(popupId);
+}
+
+// Generic delete
+async function apiDel(url, id, label) {
+    if (!confirm(`Delete this ${label}?`)) return;
+    try {
+        const d = await apiFetch(url, 'DELETE', { id });
+        d.success ? (notify(`${label} deleted`, 'info'), await loadData()) : notify(d.error || 'Delete failed', 'info');
+    } catch(e) { notify('Connection failed', 'info'); }
+}
+
+function saveEquip() {
+    const name=document.getElementById('eName').value.trim(), type=document.getElementById('eType').value,
+          status=document.getElementById('eStatus').value, maintenance_date=document.getElementById('eMaint').value,
+          location=document.getElementById('eLoc').value.trim();
+    if (!name||!location||!maintenance_date) { alert('Fill all fields'); return; }
+    apiSave('api/equipment.php', editEqId, {name,type,status,maintenance_date,location}, 'Equipment', 'equipPopup');
+}
+function saveSeed() {
+    const name=document.getElementById('sName').value.trim(), type=document.getElementById('sType').value,
+          quantity=document.getElementById('sQty').value.trim(), expiration_date=document.getElementById('sExp').value,
+          location=document.getElementById('sLoc').value.trim();
+    if (!name||!quantity||!expiration_date||!location) { alert('Fill all fields'); return; }
+    apiSave('api/seeds.php', editSdId, {name,type,quantity,expiration_date,location}, 'Seed', 'seedPopup');
+}
+function saveFert() {
+    const name=document.getElementById('fName').value.trim(), type=document.getElementById('fType').value,
+          quantity=document.getElementById('fQty').value.trim(), npk_ratio=document.getElementById('fNPK').value.trim(),
+          expiration_date=document.getElementById('fExp').value, location=document.getElementById('fLoc').value.trim();
+    if (!name||!quantity||!npk_ratio||!expiration_date||!location) { alert('Fill all fields'); return; }
+    apiSave('api/fertilizers.php', editFtId, {name,type,quantity,npk_ratio,expiration_date,location}, 'Fertilizer', 'fertPopup');
+}
+
+const delEquip = id => apiDel('api/equipment.php', id, 'equipment');
+const delSeed  = id => apiDel('api/seeds.php',     id, 'seed');
+const delFert  = id => apiDel('api/fertilizers.php',id, 'fertilizer');
+
+//DASHBOARD
+const setAlert = (divId, level, msg) => {
+    document.getElementById(divId).innerHTML = msg
+        ? `<div class="dash-alert ${level}"><i class="fas fa-${level==='danger'?'exclamation-triangle':'info-circle'}"></i> ${msg}</div>` : '';
+};
+
+function updateDashboard() {
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // Equipment
+    const total = equipment.length, good = equipment.filter(e=>e.status==='Good').length,
+          maint = equipment.filter(e=>e.status==='Maintenance').length, broken = equipment.filter(e=>e.status==='Broken').length,
+          pct = total ? Math.round(good/total*100) : 0;
+    document.getElementById('dashEquipTotal').textContent   = total;
+    document.getElementById('dashEquipGood').textContent    = good;
+    document.getElementById('dashEquipMaint').textContent   = maint;
+    document.getElementById('dashEquipBroken').textContent  = broken;
+    document.getElementById('dashEquipPercent').textContent = pct+'%';
+    document.getElementById('dashEquipBar').style.width     = pct+'%';
+    setAlert('dashEquipAlert', broken?'danger':'warning',
+        broken ? `<strong>${broken} item(s)</strong> need immediate repair` :
+        maint  ? `<strong>${maint} item(s)</strong> under maintenance` : '');
+
+    // Seeds
+    const lowSeeds = seeds.filter(s => numQty(s.quantity) < 30);
+    const expSeeds = seeds.filter(s => s.expiration && new Date(s.expiration) < today);
+    const seedHealth = seeds.length ? Math.max(0, Math.round((seeds.length-expSeeds.length)/seeds.length*100)) : 100;
+    document.getElementById('dashSeedTotal').textContent   = seeds.length;
+    document.getElementById('dashSeedPercent').textContent = seedHealth+'%';
+    document.getElementById('dashSeedBar').style.width     = seedHealth+'%';
+    setAlert('dashSeedAlert','danger',
+        lowSeeds.length ? `<strong>${lowSeeds.length} variety(s)</strong> running low (&lt;30 Kg)` :
+        expSeeds.length ? `<strong>${expSeeds.length} variety(s)</strong> expired — restock needed` :
+        !seeds.length   ? 'No seeds in stock — add inventory' : '');
+
+    // Fertilizers
+    const lowFerts = fertilizers.filter(f => numQty(f.quantity) < 30);
+    const expFerts = fertilizers.filter(f => f.expiration && new Date(f.expiration) < today);
+    const fertLevel = !fertilizers.length ? 'Empty' : lowFerts.length ? 'Low Stock' : expFerts.length ? 'Check Stock' : 'Good';
+    const fertBar   = !fertilizers.length ? 0 : lowFerts.length ? 30 : expFerts.length ? 50 : 75;
+    document.getElementById('dashFertTotal').textContent = fertilizers.length;
+    document.getElementById('dashFertLevel').textContent = fertLevel;
+    document.getElementById('dashFertBar').style.width   = fertBar+'%';
+    setAlert('dashFertAlert','danger',
+        lowFerts.length ? `<strong>${lowFerts.length} fertilizer(s)</strong> running low (&lt;30 Kg)` :
+        expFerts.length ? `<strong>${expFerts.length} product(s)</strong> expired — check inventory` :
+        !fertilizers.length ? 'No fertilizers in stock' : '');
+
+    // Alert modal (once per session)
+    if (!alertShown) {
+        const soonSeeds = seeds.filter(s => expiryInfo(s.expiration).isSoon);
+        const soonFerts = fertilizers.filter(f => expiryInfo(f.expiration).isSoon);
+        const maintEquip = equipment.filter(e => e.status==='Maintenance');
+        if (lowSeeds.length||lowFerts.length||expSeeds.length||expFerts.length||soonSeeds.length||soonFerts.length||maintEquip.length) {
+            showAlert({lowSeeds,lowFerts,expSeeds,soonSeeds,expFerts,soonFerts,maintEquip});
+            alertShown = true;
+        }
+    }
+}
+
+//ALERT MODAL
+const alertRow = (cls, icon, name, detail) =>
+    `<div class="alert-item ${cls}"><i class="fas fa-${icon}"></i><div><div class="alert-item-name">${name}</div><div class="alert-item-detail">${detail}</div></div></div>`;
+
+const alertSection = (title, color, items, rowFn) => !items.length ? '' :
+    `<div class="alert-category"><div class="alert-category-title" style="border-bottom-color:${color};">${title}</div>${items.map(rowFn).join('')}</div>`;
+
+function showAlert({lowSeeds,lowFerts,expSeeds,soonSeeds,expFerts,soonFerts,maintEquip}) {
+    document.getElementById('alertContent').innerHTML =
+        alertSection(`<i class="fas fa-ban" style="color:#b43228;"></i> Expired Seeds`, '#b43228', expSeeds,
+            s => alertRow('danger','times-circle',`${seedEmoji[s.name]||'🌱'} ${s.name}`,`Expired on ${fmtDate(s.expiration)} · ${s.location}`)) +
+        alertSection(`<i class="fas fa-clock" style="color:var(--terra);"></i> Seeds Expiring Soon`, 'var(--terra)', soonSeeds,
+            s => { const dl=expiryInfo(s.expiration).daysLeft; return alertRow('warning','clock',`${seedEmoji[s.name]||'🌱'} ${s.name}`,`Expires in ${dl} day${dl!==1?'s':''} (${fmtDate(s.expiration)}) · ${s.location}`); }) +
+        alertSection(`<i class="fas fa-seedling" style="color:var(--pine);"></i> Low Seeds Stock`, 'var(--pine)', lowSeeds,
+            s => alertRow('danger','seedling',`${seedEmoji[s.name]||'🌱'} ${s.name}`,`Only ${numQty(s.quantity)} Kg · ${s.location}`)) +
+        alertSection(`<i class="fas fa-ban" style="color:#b43228;"></i> Expired Fertilizers`, '#b43228', expFerts,
+            f => alertRow('danger','times-circle',`${fertEmoji[f.type]||'🧪'} ${f.name}`,`Expired on ${fmtDate(f.expiration)} · ${f.location}`)) +
+        alertSection(`<i class="fas fa-clock" style="color:var(--terra);"></i> Fertilizers Expiring Soon`, 'var(--terra)', soonFerts,
+            f => { const dl=expiryInfo(f.expiration).daysLeft; return alertRow('warning','clock',`${fertEmoji[f.type]||'🧪'} ${f.name}`,`Expires in ${dl} day${dl!==1?'s':''} (${fmtDate(f.expiration)}) · ${f.location}`); }) +
+        alertSection(`<i class="fas fa-flask" style="color:var(--terra);"></i> Low Fertilizers Stock`, 'var(--terra)', lowFerts,
+            f => alertRow('danger','flask',`${fertEmoji[f.type]||'🧪'} ${f.name}`,`Only ${numQty(f.quantity)} Kg · ${f.location}`)) +
+        alertSection(`<i class="fas fa-wrench" style="color:var(--terra);"></i> Equipment Under Maintenance`, 'var(--terra)', maintEquip,
+            e => alertRow('warning','wrench',`${equipEmoji[e.type]||'⚙️'} ${e.name}`,`${e.type} · ${e.location} · Maintenance: ${fmtDate(e.maintenance)}`));
+    document.getElementById('alertModal').classList.add('open');
+}
+
+//NOTIFICATIONS
+function notify(msg, type='info') {
+    document.querySelectorAll('.notif').forEach(n => n.remove());
+    const n = Object.assign(document.createElement('div'), {
+        className: `notif notif-${type==='success'?'success':'info'}`,
+        innerHTML: `<i class="fas fa-${type==='success'?'check':'info-circle'}"></i> ${msg}`
+    });
+    document.body.appendChild(n);
+    setTimeout(() => { n.style.animation='slideOut .3s ease forwards'; setTimeout(() => n.remove(), 300); }, 2800);
+}
+
+ //LOAD DATA
+async function loadData() {
+    try {
+        const tryJson = async res => { try { return res.ok ? await res.json() : []; } catch(e) { return []; } };
+        const [eqData, sdData, ftData] = await Promise.all([
+            fetch('api/equipment.php').then(tryJson),
+            fetch('api/seeds.php').then(tryJson),
+            fetch('api/fertilizers.php').then(tryJson)
+        ]);
+        if (Array.isArray(eqData)) equipment   = eqData.map(e => ({ id:e.id, name:e.name, type:e.type, status:e.status, maintenance:e.maintenance_date, location:e.location }));
+        if (Array.isArray(sdData)) seeds        = sdData.map(s => ({ id:s.id, name:s.name, type:s.type, quantity:s.quantity, expiration:s.expiration_date, location:s.location }));
+        if (Array.isArray(ftData)) fertilizers  = ftData.map(f => ({ id:f.id, name:f.name, type:f.type, quantity:f.quantity, npk:f.npk_ratio, expiration:f.expiration_date, location:f.location }));
+        buildEquip(); buildSeeds(); buildFerts(); updateDashboard();
+    } catch(e) { notify('Failed to load data from database','info'); }
+}
+
+// Close popup on overlay click
+document.querySelectorAll('.popup-overlay').forEach(po =>
+    po.addEventListener('click', e => { if(e.target===po) po.classList.remove('open'); }));
+
+window.addEventListener('load', loadData);
+</script>
+</body>
+</html>

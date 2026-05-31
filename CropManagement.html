@@ -1,0 +1,855 @@
+<?php
+require_once 'auth/auth-check.php';
+$user = checkFarmer();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Management — FellahDZ</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        /* $1 */
+        .sync-indicator {
+            position: fixed; top: 20px; right: 20px;
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 0.85rem; font-weight: 500;
+            z-index: 1000; display: none; align-items: center; gap: 8px;
+        }
+        .sync-indicator.show { display: flex; }
+        .sync-indicator.syncing { background: #3498db; color: white; }
+        .sync-indicator.saved { background: #27ae60; color: white; }
+        .sync-indicator.error { background: #e74c3c; color: white; }
+
+        .inline-input.editing, .crop-select.editing, .status-select.editing {
+            border-bottom: 2px solid var(--terra) !important;
+            background: rgba(232, 119, 34, 0.05);
+        }
+
+        .crop-select, .status-select {
+            border: none; border-bottom: 2px solid transparent;
+            background: transparent; font-size: inherit;
+            font-family: inherit; color: inherit;
+            padding: 4px 8px; cursor: pointer; outline: none;
+            appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            padding-right: 24px;
+        }
+        .crop-select:disabled, .status-select:disabled {
+            background-image: none; cursor: default; opacity: 1;
+        }
+
+        .crop-badge, .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 20px;
+            font-weight: 600; font-size: 0.95rem;
+        }
+        .status-badge { font-size: 0.85rem; padding: 4px 10px; }
+
+        .status-planted { background: rgba(52,152,219,.12); color: #2980b9; }
+        .status-germination { background: rgba(155,89,182,.12); color: #8e44ad; }
+        .status-vegetative { background: rgba(46,204,113,.12); color: #27ae60; }
+        .status-flowering { background: rgba(241,196,15,.15); color: #d35400; }
+        .status-fruiting { background: rgba(230,126,34,.12); color: #e67e22; }
+        .status-harvest { background: rgba(231,76,60,.12); color: #c0392b; }
+
+        .growth-tracker {
+            display: flex; align-items: center; gap: 4px;
+            margin-top: 12px; padding: 12px;
+            background: rgba(248,249,250,.5);
+            border-radius: 12px; flex-wrap: wrap;
+        }
+        .growth-stage {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 4px;
+            padding: 8px; border-radius: 8px;
+            transition: all 0.3s ease; min-width: 70px;
+        }
+        .growth-stage.active {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,.1);
+            transform: translateY(-2px);
+        }
+        .growth-stage.completed .stage-dot {
+            background: var(--terra,#e87722);
+            border-color: var(--terra,#e87722);
+        }
+        .growth-stage.completed .stage-label {
+            color: var(--terra,#e87722); font-weight: 600;
+        }
+        .growth-stage.active .stage-dot {
+            background: var(--terra,#e87722);
+            border-color: var(--terra,#e87722);
+            box-shadow: 0 0 0 4px rgba(232,119,34,.2);
+            animation: pulse 2s infinite;
+        }
+        .growth-stage.active .stage-label {
+            color: var(--terra,#e87722); font-weight: 700;
+        }
+        .stage-dot {
+            width: 24px; height: 24px; border-radius: 50%;
+            border: 3px solid #dee2e6; background: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; color: white; transition: all 0.3s ease;
+        }
+        .stage-label {
+            font-size: 0.7rem; color: #6c757d;
+            text-align: center; white-space: nowrap;
+        }
+        .stage-connector {
+            flex: 1; min-width: 20px; height: 3px;
+            background: #dee2e6; border-radius: 2px;
+            position: relative; max-width: 40px;
+        }
+        .stage-connector.completed {
+            background: var(--terra,#e87722);
+        }
+        @keyframes pulse {
+            0%,100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .health-indicator {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 20px;
+            font-size: 0.8rem; font-weight: 600;
+        }
+        .health-good { background: rgba(46,204,113,.12); color: #27ae60; }
+        .health-fair { background: rgba(241,196,15,.15); color: #d35400; }
+        .health-poor { background: rgba(231,76,60,.12); color: #c0392b; }
+
+        .days-counter {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 0.8rem; color: #6c757d; margin-left: 8px;
+        }
+
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .sub-card .crop-select, .sub-card .status-select {
+            font-size: 1.1rem; font-weight: 600;
+        }
+        .info-tile-value .status-select { font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+
+<div class="sync-indicator" id="syncIndicator">
+    <i class="fas fa-spinner fa-spin"></i> <span>Saving...</span>
+</div>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fas fa-seedling"></i></div>
+        <div class="sidebar-logo-text">Fellah<span>DZ</span></div>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="homepage.html"><i class="fas fa-home"></i> Home</a></li>
+        <li><a href="CropManagement.html" class="active"><i class="fas fa-tools"></i> Crop Management</a></li>
+        <li><a href="user-management-farmer.html"><i class="fas fa-users"></i> User Management</a></li>
+        <li><a href="activities.html"><i class="fas fa-tractor"></i> Activities</a></li>
+        <li><a href="equipment_seeds.html"><i class="fas fa-tools"></i> Equipment & Seeds</a></li>
+        <li><a href="settings-farmer.html"><i class="fas fa-cog"></i> Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+        <a href="home.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+
+<main class="main">
+
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1><i class="fas fa-leaf" style="color:var(--terra);margin-right:.5rem;"></i>Crop Management</h1>
+            <p>Monitor and update your crop details by section</p>
+        </div>
+        <div class="user-chip">
+            <div class="user-chip-avatar">SZ</div>
+            <div class="user-chip-info">
+                <strong>Saleh Zidane</strong>
+                <span>Farmer</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Part 1: Lettuce -->
+    <div class="card" data-section="lettuce" data-crop-id="">
+        <div class="card-header">
+            <div class="card-num">01</div>
+            <h2 class="card-title" data-field="title">Lettuce Crop Details</h2>
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-seedling"></i>Crop Type</div>
+                    <div class="info-tile-value">
+                        <span class="crop-badge" data-field="badge" style="background:rgba(76,175,80,.12);color:#2e7d32;">
+                            <select class="crop-select" data-field="crop_type" disabled>
+                                <option value="Lettuce" selected>Lettuce</option>
+                            </select>
+                        </span>
+                    </div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-heartbeat"></i>Status</div>
+                    <div class="info-tile-value">
+                        <span class="status-badge status-vegetative" data-field="status-badge">
+                            <select class="status-select" data-field="crop_status" disabled>
+                                <option value="planted">Planted</option>
+                                <option value="germination">Germination</option>
+                                <option value="vegetative" selected>Vegetative</option>
+                                <option value="flowering">Flowering</option>
+                                <option value="fruiting">Fruiting</option>
+                                <option value="harvest">Harvest Ready</option>
+                            </select>
+                        </span>
+                        <span class="days-counter" data-field="days-in-stage"><i class="fas fa-clock"></i> 12 days</span>
+                    </div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-calendar-alt"></i>Planting Date</div>
+                    <div class="info-tile-value"><input type="date" class="inline-input" data-field="planting_date" value="2026-02-08" readonly></div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-check-circle"></i>Harvest Date</div>
+                    <div class="info-tile-value"><input type="date" class="inline-input" data-field="harvest_date" value="2026-03-24" readonly></div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-tint"></i>Water / m²</div>
+                    <div class="info-tile-value"><input type="text" class="inline-input" data-field="water_per_m2" value="3L / day" readonly></div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-heart"></i>Health</div>
+                    <div class="info-tile-value">
+                        <span class="health-indicator health-good" data-field="health-badge">
+                            <select class="status-select" data-field="health_status" disabled style="font-size:0.8rem;">
+                                <option value="good" selected>Good</option>
+                                <option value="fair">Fair</option>
+                                <option value="poor">Poor</option>
+                            </select>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="growth-tracker" data-field="growth-tracker">
+                <div class="growth-stage completed" data-stage="planted">
+                    <div class="stage-dot"><i class="fas fa-check"></i></div><span class="stage-label">Planted</span>
+                </div>
+                <div class="stage-connector completed"></div>
+                <div class="growth-stage completed" data-stage="germination">
+                    <div class="stage-dot"><i class="fas fa-check"></i></div><span class="stage-label">Germination</span>
+                </div>
+                <div class="stage-connector completed"></div>
+                <div class="growth-stage active" data-stage="vegetative">
+                    <div class="stage-dot"><i class="fas fa-seedling"></i></div><span class="stage-label">Vegetative</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="flowering">
+                    <div class="stage-dot"></div><span class="stage-label">Flowering</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="fruiting">
+                    <div class="stage-dot"></div><span class="stage-label">Fruiting</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="harvest">
+                    <div class="stage-dot"></div><span class="stage-label">Harvest</span>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-outline" onclick="modifySection(this)"><i class="fas fa-edit"></i>Modify</button>
+                <button class="btn btn-green" onclick="saveSection(this, 'Lettuce')"><i class="fas fa-save"></i>Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Part 2: Tomato -->
+    <div class="card" data-section="tomato" data-crop-id="">
+        <div class="card-header">
+            <div class="card-num">02</div>
+            <h2 class="card-title" data-field="title">Tomato Crop Details</h2>
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-seedling"></i>Crop Type</div>
+                    <div class="info-tile-value">
+                        <span class="crop-badge" data-field="badge" style="background:rgba(231,76,60,.1);color:#c0392b;">
+                            <select class="crop-select" data-field="crop_type" disabled>
+                                <option value="Tomato" selected>Tomato</option>
+                            </select>
+                        </span>
+                    </div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-heartbeat"></i>Status</div>
+                    <div class="info-tile-value">
+                        <span class="status-badge status-vegetative" data-field="status-badge">
+                            <select class="status-select" data-field="crop_status" disabled>
+                                <option value="planted">Planted</option>
+                                <option value="germination">Germination</option>
+                                <option value="vegetative" selected>Vegetative</option>
+                                <option value="flowering">Flowering</option>
+                                <option value="fruiting">Fruiting</option>
+                                <option value="harvest">Harvest Ready</option>
+                            </select>
+                        </span>
+                        <span class="days-counter" data-field="days-in-stage"><i class="fas fa-clock"></i> 8 days</span>
+                    </div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-calendar-alt"></i>Planting Date</div>
+                    <div class="info-tile-value"><input type="date" class="inline-input" data-field="planting_date" value="2026-02-15" readonly></div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-check-circle"></i>Harvest Date</div>
+                    <div class="info-tile-value"><input type="date" class="inline-input" data-field="harvest_date" value="2026-04-30" readonly></div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-tint"></i>Water / m²</div>
+                    <div class="info-tile-value"><input type="text" class="inline-input" data-field="water_per_m2" value="4L / day" readonly></div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-heart"></i>Health</div>
+                    <div class="info-tile-value">
+                        <span class="health-indicator health-good" data-field="health-badge">
+                            <select class="status-select" data-field="health_status" disabled style="font-size:0.8rem;">
+                                <option value="good" selected>Good</option>
+                                <option value="fair">Fair</option>
+                                <option value="poor">Poor</option>
+                            </select>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="growth-tracker" data-field="growth-tracker">
+                <div class="growth-stage completed" data-stage="planted">
+                    <div class="stage-dot"><i class="fas fa-check"></i></div><span class="stage-label">Planted</span>
+                </div>
+                <div class="stage-connector completed"></div>
+                <div class="growth-stage completed" data-stage="germination">
+                    <div class="stage-dot"><i class="fas fa-check"></i></div><span class="stage-label">Germination</span>
+                </div>
+                <div class="stage-connector completed"></div>
+                <div class="growth-stage active" data-stage="vegetative">
+                    <div class="stage-dot"><i class="fas fa-seedling"></i></div><span class="stage-label">Vegetative</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="flowering">
+                    <div class="stage-dot"></div><span class="stage-label">Flowering</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="fruiting">
+                    <div class="stage-dot"></div><span class="stage-label">Fruiting</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="harvest">
+                    <div class="stage-dot"></div><span class="stage-label">Harvest</span>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-outline" onclick="modifySection(this)"><i class="fas fa-edit"></i>Modify</button>
+                <button class="btn btn-green" onclick="saveSection(this, 'Tomato')"><i class="fas fa-save"></i>Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Part 3: Onion -->
+    <div class="card" data-section="onion" data-crop-id="">
+        <div class="card-header">
+            <div class="card-num">03</div>
+            <h2 class="card-title" data-field="title">Onion Crop Details</h2>
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-seedling"></i>Crop Type</div>
+                    <div class="info-tile-value">
+                        <span class="crop-badge" data-field="badge" style="background:rgba(155,89,182,.1);color:#8e44ad;">
+                            <select class="crop-select" data-field="crop_type" disabled>
+                                <option value="Onion" selected>Onion</option>
+                            </select>
+                        </span>
+                    </div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-heartbeat"></i>Status</div>
+                    <div class="info-tile-value">
+                        <span class="status-badge status-planted" data-field="status-badge">
+                            <select class="status-select" data-field="crop_status" disabled>
+                                <option value="planted" selected>Planted</option>
+                                <option value="germination">Germination</option>
+                                <option value="vegetative">Vegetative</option>
+                                <option value="flowering">Flowering</option>
+                                <option value="fruiting">Fruiting</option>
+                                <option value="harvest">Harvest Ready</option>
+                            </select>
+                        </span>
+                        <span class="days-counter" data-field="days-in-stage"><i class="fas fa-clock"></i> 5 days</span>
+                    </div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-calendar-alt"></i>Planting Date</div>
+                    <div class="info-tile-value"><input type="date" class="inline-input" data-field="planting_date" value="2026-03-01" readonly></div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-check-circle"></i>Harvest Date</div>
+                    <div class="info-tile-value"><input type="date" class="inline-input" data-field="harvest_date" value="2026-06-15" readonly></div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-tint"></i>Water / m²</div>
+                    <div class="info-tile-value"><input type="text" class="inline-input" data-field="water_per_m2" value="2.5L / day" readonly></div>
+                </div>
+                <div class="info-tile">
+                    <div class="info-tile-label"><i class="fas fa-heart"></i>Health</div>
+                    <div class="info-tile-value">
+                        <span class="health-indicator health-good" data-field="health-badge">
+                            <select class="status-select" data-field="health_status" disabled style="font-size:0.8rem;">
+                                <option value="good" selected>Good</option>
+                                <option value="fair">Fair</option>
+                                <option value="poor">Poor</option>
+                            </select>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="growth-tracker" data-field="growth-tracker">
+                <div class="growth-stage active" data-stage="planted">
+                    <div class="stage-dot"><i class="fas fa-seedling"></i></div><span class="stage-label">Planted</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="germination">
+                    <div class="stage-dot"></div><span class="stage-label">Germination</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="vegetative">
+                    <div class="stage-dot"></div><span class="stage-label">Vegetative</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="flowering">
+                    <div class="stage-dot"></div><span class="stage-label">Flowering</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="fruiting">
+                    <div class="stage-dot"></div><span class="stage-label">Fruiting</span>
+                </div>
+                <div class="stage-connector"></div>
+                <div class="growth-stage" data-stage="harvest">
+                    <div class="stage-dot"></div><span class="stage-label">Harvest</span>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-outline" onclick="modifySection(this)"><i class="fas fa-edit"></i>Modify</button>
+                <button class="btn btn-green" onclick="saveSection(this, 'Onion')"><i class="fas fa-save"></i>Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Part 4: Apricots & Beans -->
+    <div class="card" data-section="mixed" data-crop-ids="">
+        <div class="card-header">
+            <div class="card-num">04</div>
+            <h2 class="card-title" data-field="title">Mixed Crops — Apricots &amp; Beans</h2>
+        </div>
+        <div class="card-body">
+            <div class="split-2">
+                <!-- Apricots -->
+                <div class="sub-card" data-crop-id="">
+                    <div class="sub-card-head">
+                        <h3><select class="crop-select" data-field="crop_type" disabled style="font-size:1.2rem;font-weight:600;border:none;background:transparent;">
+                            <option value="Apricots" selected>Apricots</option>
+                        </select></h3>
+                    </div>
+                    <div class="info-grid" style="grid-template-columns:1fr;">
+                        <div class="info-tile">
+                            <div class="info-tile-label"><i class="fas fa-heartbeat"></i>Status</div>
+                            <div class="info-tile-value">
+                                <span class="status-badge status-flowering" data-field="status-badge">
+                                    <select class="status-select" data-field="crop_status" disabled>
+                                        <option value="planted">Planted</option>
+                                        <option value="germination">Germination</option>
+                                        <option value="vegetative">Vegetative</option>
+                                        <option value="flowering" selected>Flowering</option>
+                                        <option value="fruiting">Fruiting</option>
+                                        <option value="harvest">Harvest Ready</option>
+                                    </select>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="info-tile">
+                            <div class="info-tile-label"><i class="fas fa-calendar-alt"></i>Planting</div>
+                            <div class="info-tile-value"><input type="date" class="inline-input" data-field="planting_date" value="2026-02-10" readonly></div>
+                        </div>
+                        <div class="info-tile">
+                            <div class="info-tile-label"><i class="fas fa-check-circle"></i>Harvest</div>
+                            <div class="info-tile-value"><input type="date" class="inline-input" data-field="harvest_date" value="2026-05-20" readonly></div>
+                        </div>
+                        <div class="info-tile">
+                            <div class="info-tile-label"><i class="fas fa-tint"></i>Water / m²</div>
+                            <div class="info-tile-value"><input type="text" class="inline-input" data-field="water_per_m2" value="5L / day" readonly></div>
+                        </div>
+                    </div>
+
+                    <div class="growth-tracker" data-field="growth-tracker" style="margin-top:8px;padding:8px;">
+                        <div class="growth-stage completed" data-stage="planted" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Planted</span>
+                        </div>
+                        <div class="stage-connector completed" style="min-width:15px;"></div>
+                        <div class="growth-stage completed" data-stage="germination" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"><i class="fas fa-check"></i></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Germination</span>
+                        </div>
+                        <div class="stage-connector completed" style="min-width:15px;"></div>
+                        <div class="growth-stage completed" data-stage="vegetative" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"><i class="fas fa-check"></i></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Vegetative</span>
+                        </div>
+                        <div class="stage-connector completed" style="min-width:15px;"></div>
+                        <div class="growth-stage active" data-stage="flowering" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"><i class="fas fa-seedling"></i></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Flowering</span>
+                        </div>
+                        <div class="stage-connector" style="min-width:15px;"></div>
+                        <div class="growth-stage" data-stage="fruiting" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Fruiting</span>
+                        </div>
+                        <div class="stage-connector" style="min-width:15px;"></div>
+                        <div class="growth-stage" data-stage="harvest" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Harvest</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Beans -->
+                <div class="sub-card" data-crop-id="">
+                    <div class="sub-card-head">
+                        <h3><select class="crop-select" data-field="crop_type" disabled style="font-size:1.2rem;font-weight:600;border:none;background:transparent;">
+                            <option value="Beans" selected>Beans</option>
+                        </select></h3>
+                    </div>
+                    <div class="info-grid" style="grid-template-columns:1fr;">
+                        <div class="info-tile">
+                            <div class="info-tile-label"><i class="fas fa-heartbeat"></i>Status</div>
+                            <div class="info-tile-value">
+                                <span class="status-badge status-germination" data-field="status-badge">
+                                    <select class="status-select" data-field="crop_status" disabled>
+                                        <option value="planted">Planted</option>
+                                        <option value="germination" selected>Germination</option>
+                                        <option value="vegetative">Vegetative</option>
+                                        <option value="flowering">Flowering</option>
+                                        <option value="fruiting">Fruiting</option>
+                                        <option value="harvest">Harvest Ready</option>
+                                    </select>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="info-tile">
+                            <div class="info-tile-label"><i class="fas fa-calendar-alt"></i>Planting</div>
+                            <div class="info-tile-value"><input type="date" class="inline-input" data-field="planting_date" value="2026-03-05" readonly></div>
+                        </div>
+                        <div class="info-tile">
+                            <div class="info-tile-label"><i class="fas fa-check-circle"></i>Harvest</div>
+                            <div class="info-tile-value"><input type="date" class="inline-input" data-field="harvest_date" value="2026-05-25" readonly></div>
+                        </div>
+                        <div class="info-tile">
+                            <div class="info-tile-label"><i class="fas fa-tint"></i>Water / m²</div>
+                            <div class="info-tile-value"><input type="text" class="inline-input" data-field="water_per_m2" value="2L / day" readonly></div>
+                        </div>
+                    </div>
+
+                    <div class="growth-tracker" data-field="growth-tracker" style="margin-top:8px;padding:8px;">
+                        <div class="growth-stage completed" data-stage="planted" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"><i class="fas fa-check"></i></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Planted</span>
+                        </div>
+                        <div class="stage-connector completed" style="min-width:15px;"></div>
+                        <div class="growth-stage active" data-stage="germination" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"><i class="fas fa-seedling"></i></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Germination</span>
+                        </div>
+                        <div class="stage-connector" style="min-width:15px;"></div>
+                        <div class="growth-stage" data-stage="vegetative" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Vegetative</span>
+                        </div>
+                        <div class="stage-connector" style="min-width:15px;"></div>
+                        <div class="growth-stage" data-stage="flowering" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Flowering</span>
+                        </div>
+                        <div class="stage-connector" style="min-width:15px;"></div>
+                        <div class="growth-stage" data-stage="fruiting" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Fruiting</span>
+                        </div>
+                        <div class="stage-connector" style="min-width:15px;"></div>
+                        <div class="growth-stage" data-stage="harvest" style="min-width:50px;padding:4px;">
+                            <div class="stage-dot" style="width:18px;height:18px;font-size:8px;"></div>
+                            <span class="stage-label" style="font-size:0.65rem;">Harvest</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-outline" onclick="modifySection(this)"><i class="fas fa-edit"></i>Modify</button>
+                <button class="btn btn-green" onclick="saveSection(this, 'Mixed crops')"><i class="fas fa-save"></i>Save</button>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+//SIMPLIFIED JAVASCRIPT 
+
+const STAGES=['planted','germination','vegetative','flowering','fruiting','harvest'];
+const STATUS_CSS={planted:'status-planted',germination:'status-germination',vegetative:'status-vegetative',flowering:'status-flowering',fruiting:'status-fruiting',harvest:'status-harvest'};
+const HEALTH_CSS={good:'health-good',fair:'health-fair',poor:'health-poor'};
+let cropTypes = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadCropTypes().then(loadCrops);
+});
+
+async function loadCropTypes() {
+    try {
+        const r = await fetch('api/crops.php?action=types');
+        const d = await r.json();
+        if (d.success) cropTypes = d.data;
+    } catch (e) {
+        cropTypes=[{name:'Lettuce',color_scheme:'rgba(76,175,80,.12)|#2e7d32'},{name:'Tomato',color_scheme:'rgba(231,76,60,.1)|#c0392b'},{name:'Onion',color_scheme:'rgba(155,89,182,.1)|#8e44ad'},{name:'Apricots',color_scheme:'rgba(241,196,15,.1)|#d35400'},{name:'Beans',color_scheme:'rgba(46,204,113,.1)|#27ae60'},{name:'Carrot',color_scheme:'rgba(230,126,34,.1)|#d35400'},{name:'Potato',color_scheme:'rgba(189,195,199,.1)|#7f8c8d'},{name:'Cucumber',color_scheme:'rgba(46,204,113,.12)|#27ae60'},{name:'Pepper',color_scheme:'rgba(231,76,60,.12)|#c0392b'},{name:'Corn',color_scheme:'rgba(241,196,15,.15)|#f39c12'},{name:'Wheat',color_scheme:'rgba(243,156,18,.1)|#e67e22'},{name:'Grapes',color_scheme:'rgba(142,68,173,.1)|#8e44ad'}];
+    }
+}
+
+async function loadCrops() {
+    showSync('syncing');
+    try {
+        const d = await fetch('api/crops.php').then(r => r.json());
+        if (d.success) { fillData(d.data); showSync('saved','Loaded from database'); }
+        else throw new Error(d.message);
+    } catch { showSync('error','Using default data'); }
+}
+
+const fillData = data => { ['lettuce','tomato','onion'].forEach(t => data[t] && fillSingle(data[t], t)); if (data.mixed?.length) fillMixed(data.mixed); };
+
+function fillSingle(crop, section) {
+    const card = document.querySelector(`[data-section="${section}"]`);
+    if (!card) return;
+    card.dataset.cropId = crop.id;
+
+    // Title
+    const title = card.querySelector('[data-field="title"]');
+    if (title) title.textContent = crop.crop_name + ' Crop Details';
+
+    // Badge & select
+    const badge = card.querySelector('[data-field="badge"]');
+    const sel = card.querySelector('[data-field="crop_type"]');
+    if (badge && sel) {
+        const [bg, tc] = (crop.crop_color || 'rgba(52,152,219,.1)|#2980b9').split('|');
+        badge.style.background = bg; badge.style.color = tc;
+        sel.innerHTML = cropTypes.map(t => `<option value="${t.name}"${t.name===crop.crop_type?' selected':''}>${t.name}</option>`).join('');
+    }
+
+    // Status
+    const ss = card.querySelector('[data-field="crop_status"]');
+    const sb = card.querySelector('[data-field="status-badge"]');
+    if (ss && crop.crop_status) { ss.value = crop.crop_status; updateBadge(sb, STATUS_CSS, crop.crop_status); }
+
+    // Health
+    const hs = card.querySelector('[data-field="health_status"]');
+    const hb = card.querySelector('[data-field="health-badge"]');
+    if (hs && crop.health_status) { hs.value = crop.health_status; updateBadge(hb, HEALTH_CSS, crop.health_status); }
+
+    // Days
+    const dc = card.querySelector('[data-field="days-in-stage"]');
+    if (dc && crop.days_in_stage !== undefined) dc.innerHTML = `<i class="fas fa-clock"></i> ${crop.days_in_stage} days`;
+
+    // Tracker
+    updateTracker(card, crop.crop_status || 'planted');
+
+    // Fields
+    setVal(card, 'planting_date', crop.planting_date);
+    setVal(card, 'harvest_date', crop.harvest_date);
+    setVal(card, 'water_per_m2', crop.water_per_m2);
+}
+
+function fillMixed(crops) {
+    const card = document.querySelector('[data-section="mixed"]');
+    if (!card) return;
+    const subs = card.querySelectorAll('.sub-card');
+    const names = crops.map(c => c.crop_name).join(' & ');
+
+    const title = card.querySelector('[data-field="title"]');
+    if (title) title.textContent = 'Mixed Crops — ' + names;
+
+    crops.forEach((crop, i) => {
+        if (!subs[i]) return;
+        subs[i].dataset.cropId = crop.id;
+
+        const sel = subs[i].querySelector('[data-field="crop_type"]');
+        if (sel) sel.innerHTML = cropTypes.map(t => `<option value="${t.name}"${t.name===crop.crop_type?' selected':''}>${t.name}</option>`).join('');
+
+        const ss = subs[i].querySelector('[data-field="crop_status"]');
+        const sb = subs[i].querySelector('[data-field="status-badge"]');
+        if (ss && crop.crop_status) { ss.value = crop.crop_status; updateBadge(sb, STATUS_CSS, crop.crop_status); }
+
+        updateTracker(subs[i], crop.crop_status || 'planted', true);
+        setVal(subs[i], 'planting_date', crop.planting_date);
+        setVal(subs[i], 'harvest_date', crop.harvest_date);
+        setVal(subs[i], 'water_per_m2', crop.water_per_m2);
+    });
+    card.dataset.cropIds = crops.map(c => c.id).join(',');
+}
+
+const updateBadge = (badge, classes, value) => { if (!badge) return; Object.values(classes).forEach(c => badge.classList.remove(c)); if (classes[value]) badge.classList.add(classes[value]); };
+
+function updateTracker(container, status, mini=false) {
+    const tracker = container.querySelector('[data-field="growth-tracker"]');
+    if (!tracker) return;
+    const idx = STAGES.indexOf(status);
+    if (idx === -1) return;
+
+    const stages = tracker.querySelectorAll('.growth-stage');
+    const conns = tracker.querySelectorAll('.stage-connector');
+
+    stages.forEach((s, i) => {
+        s.classList.remove('completed','active');
+        const dot = s.querySelector('.stage-dot');
+        if (i < idx) { s.classList.add('completed'); dot.innerHTML = '<i class="fas fa-check"></i>'; }
+        else if (i === idx) { s.classList.add('active'); dot.innerHTML = '<i class="fas fa-seedling"></i>'; }
+        else dot.innerHTML = '';
+    });
+    conns.forEach((c, i) => c.classList.toggle('completed', i < idx));
+}
+
+const setVal = (c, f, v) => { const el = c.querySelector(`[data-field="${f}"]`); if (el) el.value = v; };
+const getVal = (c, f) => { const el = c.querySelector(`[data-field="${f}"]`); return el ? el.value : ''; };
+
+function modifySection(btn) {
+    const editing = btn.classList.contains('editing');
+    const body = btn.closest('.card-body');
+    if (editing) {
+        btn.classList.remove('editing');
+        btn.innerHTML = '<i class="fas fa-edit"></i>Modify';
+        loadCrops(); notify('Changes cancelled','info');
+    } else {
+        btn.classList.add('editing');
+        btn.innerHTML = '<i class="fas fa-times"></i>Cancel';
+        body.querySelectorAll('.inline-input').forEach(i => { i.removeAttribute('readonly'); i.classList.add('editing'); });
+        body.querySelectorAll('.crop-select, .status-select').forEach(s => { s.disabled = false; s.classList.add('editing'); });
+        notify('Section editable — change crop type, status & health','info');
+    }
+}
+
+document.addEventListener('change', e => {
+    // Crop type change
+    if (e.target.matches('[data-field="crop_type"]')) {
+        const t = cropTypes.find(x => x.name === e.target.value);
+        if (t) {
+            const badge = e.target.closest('.crop-badge');
+            if (badge) { const [bg,tc]=t.color_scheme.split('|'); badge.style.background=bg; badge.style.color=tc; }
+            const card = e.target.closest('.card');
+            const title = card.querySelector('[data-field="title"]');
+            if (title && !card.dataset.section.includes('mixed')) title.textContent = t.name + ' Crop Details';
+        }
+    }
+    // Status change
+    if (e.target.matches('[data-field="crop_status"]')) {
+        updateBadge(e.target.closest('.status-badge'), STATUS_CSS, e.target.value);
+        updateTracker(e.target.closest('.card, .sub-card'), e.target.value, !!e.target.closest('.sub-card'));
+    }
+    // Health change
+    if (e.target.matches('[data-field="health_status"]')) {
+        updateBadge(e.target.closest('.health-indicator'), HEALTH_CSS, e.target.value);
+    }
+});
+
+async function saveSection(btn, name) {
+    const card = btn.closest('.card');
+    const section = card.dataset.section;
+    showSync('syncing');
+
+    try {
+        let crops = [];
+        if (section === 'mixed') {
+            card.querySelectorAll('.sub-card').forEach(sc => {
+                const type = getVal(sc, 'crop_type');
+                crops.push({
+                    id: parseInt(sc.dataset.cropId),
+                    crop_name: type, crop_type: type,
+                    crop_status: getVal(sc, 'crop_status'),
+                    health_status: getVal(sc, 'health_status'),
+                    planting_date: getVal(sc, 'planting_date'),
+                    harvest_date: getVal(sc, 'harvest_date'),
+                    water_per_m2: getVal(sc, 'water_per_m2')
+                });
+            });
+        } else {
+            const type = getVal(card, 'crop_type');
+            crops.push({
+                id: parseInt(card.dataset.cropId),
+                crop_name: type, crop_type: type,
+                crop_status: getVal(card, 'crop_status'),
+                health_status: getVal(card, 'health_status'),
+                planting_date: getVal(card, 'planting_date'),
+                harvest_date: getVal(card, 'harvest_date'),
+                water_per_m2: getVal(card, 'water_per_m2')
+            });
+        }
+
+        const r = await fetch('api/crops.php', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({crops})
+        });
+        const d = await r.json();
+
+        if (d.success) {
+            const modBtn = card.querySelector('.btn-outline');
+            modBtn.classList.remove('editing');
+            modBtn.innerHTML = '<i class="fas fa-edit"></i>Modify';
+            card.querySelectorAll('.inline-input').forEach(i => { i.setAttribute('readonly',true); i.classList.remove('editing'); });
+            card.querySelectorAll('.crop-select, .status-select').forEach(s => { s.disabled = true; s.classList.remove('editing'); });
+            showSync('saved','Saved to database');
+            notify(name + ' saved!','success');
+            await loadCrops();
+        } else throw new Error(d.message);
+    } catch (e) {
+        showSync('error','Save failed');
+        notify('Error: ' + e.message,'error');
+    }
+}
+
+function showSync(type, msg = '') {
+    const ind = document.getElementById('syncIndicator');
+    const icon = { syncing:'fa-spinner fa-spin', saved:'fa-check' }[type] || 'fa-exclamation-circle';
+    ind.className = `sync-indicator show ${type}`;
+    ind.innerHTML = `<i class="fas ${icon}"></i> <span>${msg}</span>`;
+    if (type !== 'syncing') setTimeout(() => ind.classList.remove('show'), 2500);
+}
+
+function notify(msg, type = 'info') {
+    document.querySelectorAll('.notif').forEach(n => n.remove());
+    const icons = { success:'check', error:'exclamation-circle', info:'info-circle' };
+    const n = Object.assign(document.createElement('div'), {
+        className: `notif notif-${type}`,
+        innerHTML: `<i class="fas fa-${icons[type]||'info-circle'}"></i> ${msg}`
+    });
+    document.body.appendChild(n);
+    setTimeout(() => { n.style.animation = 'slideOut .3s ease forwards'; setTimeout(() => n.remove(), 300); }, 2800);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Activities — FellahDZ</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+/* ── FIELD SELECTOR ── */
+.field-selector {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.75rem;
+}
+
+.field-chip {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .75rem 1.25rem;
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--ash);
+    cursor: pointer;
+    transition: all .25s;
+}
+.field-chip .fnum {
+    width: 28px;
+    height: 28px;
+    background: var(--parchment);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-weight: 800;
+    font-size: .85rem;
+    color: var(--ash);
+    transition: all .25s;
+}
+.field-chip:hover,
+.field-chip.active {
+    border-color: var(--terra);
+    color: var(--terra);
+    background: rgba(201,106,42,.06);
+}
+.field-chip:hover .fnum,
+.field-chip.active .fnum {
+    background: var(--terra);
+    color: #fff;
+}
+.field-chip.active {
+    box-shadow: 0 4px 16px rgba(201,106,42,.2);
+}
+
+/* ── FIELD PANEL ── */
+.field-panel {
+    display: none;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-m);
+    animation: panelIn .3s ease;
+}
+@keyframes panelIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.field-panel.open {
+    display: block;
+}
+
+.panel-header {
+    background: var(--forest);
+    padding: 1.25rem 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--terra);
+}
+.panel-header-left {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+}
+.panel-num {
+    width: 40px;
+    height: 40px;
+    background: var(--terra);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #fff;
+}
+.panel-title h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--cream);
+}
+.panel-title p {
+    font-size: .8rem;
+    color: rgba(200,221,208,.6);
+    margin-top: .1rem;
+}
+
+/* ── CROP INFO BANNER ── */
+.crop-info-banner {
+    background: linear-gradient(135deg, var(--parchment) 0%, var(--cream) 100%);
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.crop-info-banner .crop-emoji {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+.crop-info-banner .crop-info-text h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--forest);
+    margin-bottom: .15rem;
+}
+.crop-info-banner .crop-info-text p {
+    font-size: .8rem;
+    color: var(--ash);
+}
+
+/* ── ACTIVITY CARDS ── */
+.activities-grid {
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+.activity-card {
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: all .25s;
+}
+.activity-card:hover {
+    border-color: var(--terra-lt);
+    box-shadow: var(--shadow-m);
+    transform: translateY(-2px);
+}
+.activity-card.completed {
+    border-color: #27ae60;
+    background: rgba(39,174,96,.05);
+}
+.activity-card-head {
+    background: rgba(27,58,43,.07);
+    padding: .85rem 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    border-bottom: 1px solid var(--border);
+}
+.activity-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.activity-avatar.planted { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+.activity-avatar.irrigation { background: linear-gradient(135deg, #3498db, #5dade2); }
+.activity-avatar.pesticides { background: linear-gradient(135deg, #9b59b6, #bb8fce); }
+.activity-title {
+    font-weight: 600;
+    font-size: .92rem;
+    color: var(--forest);
+}
+.activity-body {
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+}
+.activity-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+.activity-label {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--ash);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.activity-label i {
+    color: var(--terra);
+    font-size: .85rem;
+}
+
+/* ── TOGGLE SWITCH ── */
+.toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 26px;
+    background: var(--border);
+    border-radius: 13px;
+    cursor: pointer;
+    transition: background .3s;
+}
+.toggle-switch.active {
+    background: #27ae60;
+}
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,.2);
+}
+.toggle-switch.active::after {
+    transform: translateX(24px);
+}
+
+/* ── STATUS BADGES ── */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .75rem;
+    border-radius: 20px;
+    font-size: .8rem;
+    font-weight: 700;
+}
+.status-badge.yes { background: rgba(44,95,65,.15); color: #27ae60; }
+.status-badge.no { background: rgba(201,106,42,.15); color: var(--terra); }
+
+/* ── PESTICIDE INPUT ── */
+.pesticide-input {
+    width: 100%;
+    padding: .6rem .9rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .85rem;
+    transition: all .2s;
+}
+.pesticide-input:focus {
+    outline: none;
+    border-color: var(--forest);
+}
+
+/* ── PANEL FOOTER ── */
+.panel-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: .75rem;
+    justify-content: flex-end;
+    background: var(--parchment);
+}
+.btn {
+    padding: .65rem 1.25rem;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+.btn-primary {
+    background: var(--terra);
+    color: #fff;
+}
+.btn-primary:hover {
+    background: #a8551f;
+    transform: translateY(-1px);
+}
+.btn-outline {
+    background: transparent;
+    color: var(--forest);
+    border: 2px solid var(--border);
+}
+.btn-outline:hover {
+    border-color: var(--terra);
+    color: var(--terra);
+}
+
+/* ── INFO BANNER ── */
+.info-banner {
+    background: rgba(52,152,219,.1);
+    border: 1px solid rgba(52,152,219,.3);
+    color: #2980b9;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    font-size: .9rem;
+}
+.info-banner i {
+    font-size: 1.1rem;
+}
+
+/* ── NO FIELDS ── */
+.no-field-message {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--white);
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    color: var(--ash);
+}
+.no-field-message i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--terra);
+    opacity: .5;
+}
+
+/* ── LOADING & NOTIFICATIONS ── */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all .3s;
+}
+.loading-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--border);
+    border-top-color: var(--terra);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.notif {
+    position: fixed;
+    bottom: 1.75rem;
+    right: 1.75rem;
+    padding: .85rem 1.4rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: .88rem;
+    z-index: 10000;
+    box-shadow: var(--shadow-m);
+    animation: slideUp .3s ease;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    border-left: 4px solid rgba(255,255,255,.4);
+}
+.notif-success { background: var(--forest); color: #fff; }
+.notif-error { background: #e74c3c; color: #fff; }
+.notif-info { background: var(--terra); color: #fff; }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(120%); opacity: 0; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+    .activities-grid { grid-template-columns: 1fr; }
+}
+    </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay"><div class="loading-spinner"></div></div>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fas fa-seedling"></i></div>
+        <div class="sidebar-logo-text">Fellah<span>DZ</span></div>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="worker-dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+        <li><a href="worker-activities.html" class="active"><i class="fas fa-clipboard-check"></i> My Activities</a></li>
+        <li><a href="settings-worker.html"><i class="fas fa-cog"></i> Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+        <a href="#" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+
+<main class="main">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1><i class="fas fa-clipboard-check" style="color:var(--terra);margin-right:.5rem;"></i>My Activities</h1>
+            <p>Update your field work progress</p>
+        </div>
+        <div class="user-chip" id="userChip" style="display:none;">
+            <div class="user-chip-avatar" id="userInitials">WK</div>
+            <div class="user-chip-info">
+                <strong id="userFullName">Worker Name</strong>
+                <span>Worker</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-banner">
+        <i class="fas fa-info-circle"></i>
+        <span>Click the toggles to update your work status, then save changes.</span>
+    </div>
+
+    <div class="field-selector" id="fieldSelector"></div>
+    <div id="fieldsContainer"></div>
+</main>
+
+<script>
+const API_URL = 'api/name.php';
+let currentUser = null, workerAssignments = [], cropData = {};
+
+const cropTypeMap = {
+    'Lettuce':  { emoji:'🥬', color:'rgba(76,175,80,.12)|#2e7d32' },
+    'Tomato':   { emoji:'🍅', color:'rgba(231,76,60,.1)|#c0392b' },
+    'Onion':    { emoji:'🧅', color:'rgba(155,89,182,.1)|#8e44ad' },
+    'Apricots': { emoji:'🍑', color:'rgba(241,196,15,.1)|#d35400' },
+    'Beans':    { emoji:'🫘', color:'rgba(46,204,113,.1)|#27ae60' }
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuthentication();
+    if (currentUser) {
+        updateUserUI();
+        await loadCropData();
+        await loadWorkerAssignments();
+    }
+});
+
+function getFieldFromUrl() {
+    const v = new URLSearchParams(window.location.search).get('field');
+    return v ? parseInt(v) : null;
+}
+
+async function checkAuthentication() {
+    showLoading();
+    try {
+        const data = await fetch('auth/check_session.php', { credentials:'include' }).then(r => r.json());
+        if (data.authenticated && data.user) {
+            currentUser = data.user;
+            document.getElementById('userChip').style.display = 'flex';
+        } else {
+            window.location.href = 'logiin.html';
+        }
+    } catch { window.location.href = 'logiin.html'; }
+    finally  { hideLoading(); }
+}
+
+function updateUserUI() {
+    document.getElementById('userInitials').textContent  = currentUser.initials || 'WK';
+    document.getElementById('userFullName').textContent  = `${currentUser.first_name||''} ${currentUser.last_name||''}`.trim() || 'Worker';
+}
+
+async function logout() {
+    try { await fetch('auth/logout.php', { method:'POST', credentials:'include' }); } catch {}
+    window.location.href = 'logiin.html';
+}
+
+async function loadCropData() {
+    try {
+        const result = await fetch('api/crops.php').then(r => r.json());
+        if (result.success && result.data) {
+            result.data.forEach(crop => {
+                const s = crop.section_number || 1;
+                if (!cropData[s]) cropData[s] = [];
+                cropData[s].push(crop);
+            });
+        }
+    } catch(e) { console.error('Failed to load crop data:', e); }
+}
+
+async function loadWorkerAssignments() {
+    showLoading();
+    try {
+        const workerRes  = await fetch(`${API_URL}?action=get_worker_by_email&email=${encodeURIComponent(currentUser.email)}`, { credentials:'include' }).then(r => r.json());
+        const myWorkerId = workerRes.success && workerRes.data ? workerRes.data.id : null;
+
+        const result = await fetch(API_URL, { credentials:'include' }).then(r => r.json());
+        if (result.success && result.data) {
+            workerAssignments = [];
+            Object.entries(result.data).forEach(([fieldNum, assignments]) => {
+                assignments.forEach(a => {
+                    const byId    = myWorkerId && a.worker_id == myWorkerId;
+                    const byEmail = currentUser.email && (a.worker_email === currentUser.email || a.email === currentUser.email);
+                    if (byId || byEmail) workerAssignments.push({ ...a, field_number: fieldNum });
+                });
+            });
+            renderFields();
+        } else {
+            renderNoFields();
+        }
+    } catch(e) { console.error('loadWorkerAssignments error:', e); renderNoFields(); }
+    finally    { hideLoading(); }
+}
+
+function getCropInfo(fieldNum) {
+    const crops = cropData[fieldNum] || [];
+    if (crops.length > 0) {
+        const c = crops[0];
+        const t = cropTypeMap[c.crop_type] || { emoji:'🌱', color:'rgba(52,152,219,.1)|#2980b9' };
+        return { name: c.crop_name || c.crop_type, emoji: c.crop_emoji || t.emoji, color: c.crop_color || t.color, water: c.water_per_m2 };
+    }
+    const defaults = {
+        1: { name:'Lettuce',          emoji:'🥬',    color:'rgba(76,175,80,.12)|#2e7d32',   water:'3L / day' },
+        2: { name:'Tomato',           emoji:'🍅',    color:'rgba(231,76,60,.1)|#c0392b',    water:'4L / day' },
+        3: { name:'Onion',            emoji:'🧅',    color:'rgba(155,89,182,.1)|#8e44ad',   water:'2.5L / day' },
+        4: { name:'Apricots & Beans', emoji:'🍑🫘', color:'rgba(241,196,15,.1)|#d35400',   water:'3.5L / day' }
+    };
+    return defaults[fieldNum] || defaults[1];
+}
+
+function renderFields() {
+    const selector  = document.getElementById('fieldSelector');
+    const container = document.getElementById('fieldsContainer');
+
+    if (!workerAssignments.length) { renderNoFields(); return; }
+
+    const urlField   = getFieldFromUrl();
+    const defaultIdx = urlField ? workerAssignments.findIndex(a => parseInt(a.field_number) === urlField) : 0;
+    const openIndex  = defaultIdx >= 0 ? defaultIdx : 0;
+
+    selector.innerHTML = workerAssignments.map((a, i) => {
+        const crop = getCropInfo(a.field_number);
+        return `
+        <button class="field-chip ${i === openIndex ? 'active' : ''}" onclick="toggleField(${a.field_number}, this)">
+            <div class="fnum">${a.field_number}</div>
+            <span>Field ${a.field_number}</span>
+            <span style="margin-left:.5rem;font-size:.75rem;opacity:.7;">${crop.emoji}</span>
+        </button>`;
+    }).join('');
+
+    container.innerHTML = workerAssignments.map((a, i) => {
+        const crop      = getCropInfo(a.field_number);
+        const planted   = a.planted == 1;
+        const irrigation = a.irrigation == 1;
+
+        return `
+        <div class="field-panel ${i === openIndex ? 'open' : ''}" id="field-panel-${a.field_number}">
+            <div class="panel-header">
+                <div class="panel-header-left">
+                    <div class="panel-num">${a.field_number}</div>
+                    <div class="panel-title">
+                        <h2>Field ${a.field_number} — ${crop.name} — Update Activities</h2>
+                        <p>Assignment #${a.id} · Toggle switches to update status</p>
+                    </div>
+                </div>
+            </div>
+            <div class="crop-info-banner">
+                <div class="crop-emoji">${crop.emoji}</div>
+                <div class="crop-info-text"><h3>${crop.name}</h3><p>Water requirement: ${crop.water}</p></div>
+            </div>
+            <div class="activities-grid">
+                <!-- Planted -->
+                <div class="activity-card ${planted ? 'completed' : ''}" id="card-planted-${a.id}">
+                    <div class="activity-card-head"><div class="activity-avatar planted"><i class="fas fa-seedling"></i></div><span class="activity-title">Planted</span></div>
+                    <div class="activity-body">
+                        <div class="activity-row">
+                            <span class="activity-label"><i class="fas fa-check-circle"></i>Status</span>
+                            <div class="toggle-switch ${planted ? 'active' : ''}" onclick="toggleActivity('planted',${a.id})"></div>
+                        </div>
+                        <div class="activity-row" style="justify-content:flex-end;margin-top:.5rem;">
+                            <span class="status-badge ${planted ? 'yes' : 'no'}" id="badge-planted-${a.id}">
+                                <i class="fas fa-${planted ? 'check' : 'times'}"></i> ${planted ? 'Yes' : 'No'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Irrigation -->
+                <div class="activity-card ${irrigation ? 'completed' : ''}" id="card-irrigation-${a.id}">
+                    <div class="activity-card-head"><div class="activity-avatar irrigation"><i class="fas fa-tint"></i></div><span class="activity-title">Irrigation</span></div>
+                    <div class="activity-body">
+                        <div class="activity-row">
+                            <span class="activity-label"><i class="fas fa-check-circle"></i>Status</span>
+                            <div class="toggle-switch ${irrigation ? 'active' : ''}" onclick="toggleActivity('irrigation',${a.id})"></div>
+                        </div>
+                        <div class="activity-row" style="justify-content:flex-end;margin-top:.5rem;">
+                            <span class="status-badge ${irrigation ? 'yes' : 'no'}" id="badge-irrigation-${a.id}">
+                                <i class="fas fa-${irrigation ? 'check' : 'times'}"></i> ${irrigation ? 'Yes' : 'No'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Pesticides -->
+                <div class="activity-card ${a.pesticides ? 'completed' : ''}" id="card-pesticides-${a.id}">
+                    <div class="activity-card-head"><div class="activity-avatar pesticides"><i class="fas fa-spray-can"></i></div><span class="activity-title">Pesticides</span></div>
+                    <div class="activity-body">
+                        <div class="activity-row" style="flex-direction:column;align-items:stretch;gap:.5rem;">
+                            <span class="activity-label"><i class="fas fa-spray-can"></i>Product Name</span>
+                            <input type="text" class="pesticide-input" id="input-pesticides-${a.id}" placeholder="e.g., Organic pesticide A" value="${escapeHtml(a.pesticides || '')}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-footer">
+                <button class="btn btn-primary" onclick="saveActivities(${a.id})"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function toggleField(num, btn) {
+    const panel  = document.getElementById('field-panel-' + num);
+    const isOpen = panel.classList.contains('open');
+    document.querySelectorAll('.field-panel').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.field-chip').forEach(b => b.classList.remove('active'));
+    if (!isOpen) { panel.classList.add('open'); btn.classList.add('active'); panel.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+}
+
+function toggleActivity(type, assignmentId) {
+    const toggle = document.querySelector(`#card-${type}-${assignmentId} .toggle-switch`);
+    const badge  = document.getElementById(`badge-${type}-${assignmentId}`);
+    const card   = document.getElementById(`card-${type}-${assignmentId}`);
+    const active = toggle.classList.toggle('active');
+    badge.className = `status-badge ${active ? 'yes' : 'no'}`;
+    badge.innerHTML = `<i class="fas fa-${active ? 'check' : 'times'}"></i> ${active ? 'Yes' : 'No'}`;
+    card.classList.toggle('completed', active);
+}
+
+async function saveActivities(assignmentId) {
+    showLoading();
+    const planted    = document.querySelector(`#card-planted-${assignmentId} .toggle-switch`).classList.contains('active');
+    const irrigation = document.querySelector(`#card-irrigation-${assignmentId} .toggle-switch`).classList.contains('active');
+    const pesticides = document.getElementById(`input-pesticides-${assignmentId}`).value.trim();
+    const openPanel  = document.querySelector('.field-panel.open');
+    const openFieldNum = openPanel ? openPanel.id.replace('field-panel-', '') : null;
+
+    try {
+        const result = await fetch(API_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assignment_id:assignmentId, planted, irrigation, pesticides }),
+            credentials: 'include'
+        }).then(r => r.json());
+
+        if (!result.success) throw new Error(result.error || 'Update failed');
+        notify('Activities updated successfully!', 'success');
+        if (openFieldNum) {
+            const url = new URL(window.location);
+            url.searchParams.set('field', openFieldNum);
+            window.history.replaceState({}, '', url);
+        }
+        await loadWorkerAssignments();
+    } catch(e) { notify('Failed to save: ' + e.message, 'error'); }
+    finally     { hideLoading(); }
+}
+
+function renderNoFields() {
+    document.getElementById('fieldSelector').innerHTML = '';
+    document.getElementById('fieldsContainer').innerHTML = `
+        <div class="no-field-message">
+            <i class="fas fa-clipboard-question"></i>
+            <h3>No Field Assignments</h3>
+            <p>You are not currently assigned to any fields.</p>
+        </div>`;
+}
+
+function showLoading()  { document.getElementById('loadingOverlay').classList.add('active'); }
+function hideLoading()  { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+function escapeHtml(str) {
+    return str ? str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) : '';
+}
+
+function notify(msg, type = 'success') {
+    document.querySelectorAll('.notif').forEach(n => n.remove());
+    const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', info:'fa-info-circle' };
+    const el    = Object.assign(document.createElement('div'), { className:`notif notif-${type}`, innerHTML:`<i class="fas ${icons[type]||icons.info}"></i> ${msg}` });
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.animation = 'slideOut .3s ease forwards'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+</script>
+</body>
+</html>

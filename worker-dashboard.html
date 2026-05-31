@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Dashboard — FellahDZ</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+/* ── STATS ── */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+.stat-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    text-align: center;
+    transition: all .25s;
+}
+.stat-card:hover {
+    border-color: var(--terra);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-s);
+}
+.stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--terra);
+    margin-bottom: .25rem;
+}
+.stat-label {
+    font-size: .8rem;
+    color: var(--ash);
+    font-weight: 600;
+}
+
+/* ── FIELD SELECTOR ── */
+.field-selector {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.75rem;
+}
+.field-chip {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .75rem 1.25rem;
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--ash);
+    cursor: pointer;
+    transition: all .25s;
+}
+.field-chip .fnum {
+    width: 28px;
+    height: 28px;
+    background: var(--parchment);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-weight: 800;
+    font-size: .85rem;
+    color: var(--ash);
+    transition: all .25s;
+}
+.field-chip:hover,
+.field-chip.active {
+    border-color: var(--terra);
+    color: var(--terra);
+    background: rgba(201,106,42,.06);
+}
+.field-chip:hover .fnum,
+.field-chip.active .fnum {
+    background: var(--terra);
+    color: #fff;
+}
+.field-chip.active {
+    box-shadow: 0 4px 16px rgba(201,106,42,.2);
+}
+
+/* ── FIELD PANEL ── */
+.field-panel {
+    display: none;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-m);
+    animation: panelIn .3s ease;
+}
+@keyframes panelIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.field-panel.open {
+    display: block;
+}
+
+.panel-header {
+    background: var(--forest);
+    padding: 1.25rem 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--terra);
+}
+.panel-header-left {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+}
+.panel-num {
+    width: 40px;
+    height: 40px;
+    background: var(--terra);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #fff;
+}
+.panel-title h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--cream);
+}
+.panel-title p {
+    font-size: .8rem;
+    color: rgba(200,221,208,.6);
+    margin-top: .1rem;
+}
+.panel-close {
+    background: rgba(255,255,255,.1);
+    border: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    color: var(--cream);
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .2s;
+}
+.panel-close:hover {
+    background: rgba(255,255,255,.2);
+}
+
+/* ── CROP INFO BANNER ── */
+.crop-info-banner {
+    background: linear-gradient(135deg, var(--parchment) 0%, var(--cream) 100%);
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.crop-info-banner .crop-emoji {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+.crop-info-banner .crop-info-text h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--forest);
+    margin-bottom: .15rem;
+}
+.crop-info-banner .crop-info-text p {
+    font-size: .8rem;
+    color: var(--ash);
+}
+
+/* ── FIELD DETAILS ── */
+.field-details-section {
+    padding: 1.5rem;
+    background: var(--parchment);
+    border-bottom: 1px solid var(--border);
+}
+.section-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--forest);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+.section-label i {
+    color: var(--terra);
+}
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+.detail-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all .25s;
+}
+.detail-card:hover {
+    border-color: var(--terra);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-s);
+}
+.detail-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: #fff;
+    flex-shrink: 0;
+}
+.detail-icon.crop { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+.detail-icon.area { background: linear-gradient(135deg, #3498db, #5dade2); }
+.detail-icon.soil { background: linear-gradient(135deg, #8b4513, #a0522d); }
+.detail-icon.date { background: linear-gradient(135deg, #9b59b6, #bb8fce); }
+.detail-icon.status { background: linear-gradient(135deg, #e67e22, #f39c12); }
+.detail-icon.health { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+.detail-content h4 {
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--ash);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: .25rem;
+}
+.detail-content p {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--forest);
+}
+
+/* ── ACTIVITY CARDS ── */
+.activities-section {
+    padding: 1.5rem;
+}
+.activities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+.activity-card {
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: all .25s;
+}
+.activity-card:hover {
+    border-color: var(--terra-lt);
+    box-shadow: var(--shadow-m);
+    transform: translateY(-2px);
+}
+.activity-card.completed {
+    border-color: #27ae60;
+    background: rgba(39,174,96,.05);
+}
+.activity-card-head {
+    background: rgba(27,58,43,.07);
+    padding: .85rem 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    border-bottom: 1px solid var(--border);
+}
+.activity-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.activity-avatar.planted { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+.activity-avatar.irrigation { background: linear-gradient(135deg, #3498db, #5dade2); }
+.activity-avatar.pesticides { background: linear-gradient(135deg, #9b59b6, #bb8fce); }
+.activity-title {
+    font-weight: 600;
+    font-size: .92rem;
+    color: var(--forest);
+}
+.activity-body {
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+}
+.activity-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+.activity-label {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--ash);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.activity-label i {
+    color: var(--terra);
+    font-size: .85rem;
+}
+
+/* ── STATUS BADGES ── */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .75rem;
+    border-radius: 20px;
+    font-size: .8rem;
+    font-weight: 700;
+}
+.status-badge.yes { background: rgba(44,95,65,.15); color: #27ae60; }
+.status-badge.no { background: rgba(201,106,42,.15); color: var(--terra); }
+.status-badge i { font-size: .75rem; }
+.pesticide-value {
+    font-size: .88rem;
+    color: var(--ink);
+    font-weight: 500;
+    text-align: right;
+}
+.pesticide-value.empty {
+    color: var(--ash);
+    font-style: italic;
+}
+
+/* ── PROGRESS ── */
+.progress-section {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--parchment);
+}
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .75rem;
+}
+.progress-header h4 {
+    font-size: .9rem;
+    color: var(--forest);
+    font-weight: 600;
+}
+.progress-percent {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--terra);
+}
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--terra) 0%, var(--forest) 100%);
+    border-radius: 4px;
+    transition: width .5s ease;
+}
+
+/* ── PANEL ACTIONS ── */
+.panel-actions {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: .75rem;
+    justify-content: flex-end;
+    background: var(--cream);
+}
+.btn {
+    padding: .65rem 1.25rem;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    text-decoration: none;
+}
+.btn-primary {
+    background: var(--terra);
+    color: #fff;
+}
+.btn-primary:hover {
+    background: #a8551f;
+    transform: translateY(-1px);
+}
+.btn-outline {
+    background: transparent;
+    color: var(--forest);
+    border: 2px solid var(--border);
+}
+.btn-outline:hover {
+    border-color: var(--terra);
+    color: var(--terra);
+}
+
+/* ── WEATHER ── */
+.weather-strip {
+    background: linear-gradient(135deg, var(--forest) 0%, var(--pine) 100%);
+    border-radius: 18px;
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-m);
+    color: var(--cream);
+    position: relative;
+    overflow: hidden;
+}
+.weather-strip::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba(201,106,42,.3) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: translate(30%, -30%);
+}
+.weather-main {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    z-index: 1;
+}
+.weather-icon-wrap {
+    width: 60px;
+    height: 60px;
+    background: rgba(255,255,255,.1);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,.15);
+}
+.weather-info h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: .2rem;
+}
+.weather-info .cond {
+    font-size: 1rem;
+    font-weight: 600;
+    opacity: .9;
+    text-transform: capitalize;
+}
+.weather-info .loc {
+    font-size: .8rem;
+    opacity: .7;
+    margin-top: .15rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.weather-details {
+    display: flex;
+    gap: 1.25rem;
+    z-index: 1;
+}
+.weather-detail {
+    text-align: center;
+    padding: .4rem .85rem;
+    background: rgba(255,255,255,.08);
+    border-radius: 8px;
+    backdrop-filter: blur(4px);
+}
+.weather-detail i {
+    font-size: 1rem;
+    color: var(--terra-lt);
+    margin-bottom: .25rem;
+    display: block;
+}
+.weather-detail .val {
+    font-size: .9rem;
+    font-weight: 700;
+}
+.weather-detail .lbl {
+    font-size: .65rem;
+    opacity: .7;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+.refresh-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(255,255,255,.1);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: var(--cream);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s;
+    z-index: 2;
+}
+.refresh-btn:hover {
+    background: rgba(255,255,255,.2);
+    transform: rotate(180deg);
+}
+.refresh-btn.spinning {
+    animation: spin 1s linear infinite;
+}
+
+/* ── NO FIELDS ── */
+.no-field-message {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--white);
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    color: var(--ash);
+}
+.no-field-message i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--terra);
+    opacity: .5;
+}
+
+/* ── LOADING & NOTIFICATIONS ── */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all .3s;
+}
+.loading-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--border);
+    border-top-color: var(--terra);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+.notif {
+    position: fixed;
+    bottom: 1.75rem;
+    right: 1.75rem;
+    padding: .85rem 1.4rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: .88rem;
+    z-index: 10000;
+    box-shadow: var(--shadow-m);
+    animation: slideUp .3s ease;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    border-left: 4px solid rgba(255,255,255,.4);
+}
+.notif-success { background: var(--forest); color: #fff; }
+.notif-error { background: #e74c3c; color: #fff; }
+.notif-info { background: var(--terra); color: #fff; }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(120%); opacity: 0; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .details-grid { grid-template-columns: 1fr; }
+    .activities-grid { grid-template-columns: 1fr; }
+}
+    </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay"><div class="loading-spinner"></div></div>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fas fa-seedling"></i></div>
+        <div class="sidebar-logo-text">Fellah<span>DZ</span></div>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="worker-dashboard.html" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+        <li><a href="worker-activities.html"><i class="fas fa-clipboard-check"></i> My Activities</a></li>
+        <li><a href="settings-worker.html"><i class="fas fa-cog"></i> Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+        <a href="#" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+
+<main class="main">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1><i class="fas fa-home" style="color:var(--terra);margin-right:.5rem;"></i>My Dashboard</h1>
+            <p>Welcome back, <span id="welcomeName">Worker</span></p>
+        </div>
+        <div class="user-chip" id="userChip" style="display:none;">
+            <div class="user-chip-avatar" id="userInitials">WK</div>
+            <div class="user-chip-info">
+                <strong id="userFullName">Worker Name</strong>
+                <span>Worker</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" id="totalFields">0</div><div class="stat-label">My Fields</div></div>
+        <div class="stat-card"><div class="stat-value" id="completedTasks">0</div><div class="stat-label">Done</div></div>
+        <div class="stat-card"><div class="stat-value" id="pendingTasks">0</div><div class="stat-label">Pending</div></div>
+        <div class="stat-card"><div class="stat-value" id="progressPercent">0%</div><div class="stat-label">Progress</div></div>
+    </div>
+
+    <!-- Weather -->
+    <div class="weather-strip">
+        <button class="refresh-btn" onclick="fetchWeather()" title="Refresh weather"><i class="fas fa-sync-alt"></i></button>
+        <div class="weather-main">
+            <div class="weather-icon-wrap" id="weatherIcon"><i class="fas fa-sun"></i></div>
+            <div class="weather-info">
+                <h2 id="tempDisplay">--°C</h2>
+                <div class="cond" id="condDisplay">Loading...</div>
+                <div class="loc"><i class="fas fa-map-marker-alt"></i> Jijel, Algeria</div>
+            </div>
+        </div>
+        <div class="weather-details">
+            <div class="weather-detail"><i class="fas fa-tint"></i><div class="val" id="humidityDisplay">--%</div><div class="lbl">Humidity</div></div>
+            <div class="weather-detail"><i class="fas fa-wind"></i><div class="val" id="windDisplay">-- km/h</div><div class="lbl">Wind</div></div>
+            <div class="weather-detail"><i class="fas fa-eye"></i><div class="val" id="visibilityDisplay">-- km</div><div class="lbl">Visibility</div></div>
+        </div>
+    </div>
+
+    <div class="field-selector" id="fieldSelector"></div>
+    <div id="fieldsContainer"></div>
+</main>
+
+<script>
+const weatherCodes = {
+    0:{icon:'fa-sun',label:'Clear sky',color:'#f0cf80'},
+    1:{icon:'fa-cloud-sun',label:'Mainly clear',color:'#e8a06a'},
+    2:{icon:'fa-cloud-sun',label:'Partly cloudy',color:'#c8ddd0'},
+    3:{icon:'fa-cloud',label:'Overcast',color:'#6b7c6b'},
+    45:{icon:'fa-smog',label:'Foggy',color:'#9aa899'},
+    48:{icon:'fa-smog',label:'Depositing rime fog',color:'#9aa899'},
+    51:{icon:'fa-cloud-rain',label:'Light drizzle',color:'#7da0b3'},
+    53:{icon:'fa-cloud-rain',label:'Moderate drizzle',color:'#5a8f6e'},
+    55:{icon:'fa-cloud-showers-heavy',label:'Dense drizzle',color:'#4a7c5e'},
+    61:{icon:'fa-cloud-rain',label:'Slight rain',color:'#5a8f6e'},
+    63:{icon:'fa-cloud-showers-heavy',label:'Moderate rain',color:'#4a7c5e'},
+    65:{icon:'fa-cloud-showers-heavy',label:'Heavy rain',color:'#2c5f41'},
+    71:{icon:'fa-snowflake',label:'Slight snow',color:'#a8d5e5'},
+    73:{icon:'fa-snowflake',label:'Moderate snow',color:'#8bc4d9'},
+    75:{icon:'fa-snowflake',label:'Heavy snow',color:'#6ab0cf'},
+    80:{icon:'fa-cloud-rain',label:'Rain showers',color:'#5a8f6e'},
+    81:{icon:'fa-cloud-showers-heavy',label:'Moderate showers',color:'#4a7c5e'},
+    82:{icon:'fa-cloud-showers-heavy',label:'Violent showers',color:'#2c5f41'},
+    95:{icon:'fa-bolt',label:'Thunderstorm',color:'#d4a843'},
+    96:{icon:'fa-bolt',label:'Thunderstorm with hail',color:'#c96a2a'},
+    99:{icon:'fa-bolt',label:'Heavy thunderstorm',color:'#b43228'}
+};
+
+const JIJEL_LAT = 36.8206, JIJEL_LON = 5.7667;
+let currentUser = null, workerAssignments = [], cropData = {};
+
+const cropTypeMap = {
+    'Lettuce':  { emoji:'🥬', color:'rgba(76,175,80,.12)|#2e7d32',   area:'2.5 ha', soil:'Clay Loam' },
+    'Tomato':   { emoji:'🍅', color:'rgba(231,76,60,.1)|#c0392b',    area:'3.0 ha', soil:'Sandy Loam' },
+    'Onion':    { emoji:'🧅', color:'rgba(155,89,182,.1)|#8e44ad',   area:'1.8 ha', soil:'Silt Loam' },
+    'Apricots': { emoji:'🍑', color:'rgba(241,196,15,.1)|#d35400',   area:'3.5 ha', soil:'Loamy Sand' },
+    'Beans':    { emoji:'🫘', color:'rgba(46,204,113,.1)|#27ae60',   area:'3.5 ha', soil:'Loamy Sand' }
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuthentication();
+    if (currentUser) {
+        updateUserUI();
+        fetchWeather();
+        setInterval(fetchWeather, 600000);
+        await loadCropData();
+        await loadWorkerAssignments();
+    }
+});
+
+async function checkAuthentication() {
+    showLoading();
+    try {
+        const data = await fetch('auth/check_session.php', { credentials:'include' }).then(r => r.json());
+        if (data.authenticated && data.user) {
+            currentUser = data.user;
+            document.getElementById('userChip').style.display = 'flex';
+        } else { window.location.href = 'logiin.html'; }
+    } catch { window.location.href = 'logiin.html'; }
+    finally  { hideLoading(); }
+}
+
+function updateUserUI() {
+    document.getElementById('welcomeName').textContent  = currentUser.first_name || 'Worker';
+    document.getElementById('userInitials').textContent = currentUser.initials || 'WK';
+    document.getElementById('userFullName').textContent = `${currentUser.first_name||''} ${currentUser.last_name||''}`.trim() || 'Worker';
+}
+
+async function logout() {
+    try { await fetch('auth/logout.php', { method:'POST', credentials:'include' }); } catch {}
+    window.location.href = 'logiin.html';
+}
+
+async function loadCropData() {
+    try {
+        const result = await fetch('api/crops.php').then(r => r.json());
+        if (result.success && result.data) {
+            result.data.forEach(crop => {
+                const s = crop.section_number || 1;
+                if (!cropData[s]) cropData[s] = [];
+                cropData[s].push(crop);
+            });
+        }
+    } catch(e) { console.error('Failed to load crop data:', e); }
+}
+
+async function loadWorkerAssignments() {
+    showLoading();
+    try {
+        const workerRes  = await fetch('api/name.php?action=get_worker_by_email&email=' + encodeURIComponent(currentUser.email), { credentials:'include' }).then(r => r.json());
+        const myWorkerId = workerRes.success && workerRes.data ? workerRes.data.id : null;
+        if (!myWorkerId) console.warn('Could not get worker_id, using email fallback');
+
+        const result = await fetch('api/name.php', { credentials:'include' }).then(r => r.json());
+        if (result.success && result.data) {
+            workerAssignments = [];
+            Object.entries(result.data).forEach(([fieldNum, assignments]) => {
+                assignments.forEach(a => {
+                    const byId    = myWorkerId && a.worker_id == myWorkerId;
+                    const byEmail = currentUser.email && (a.worker_email === currentUser.email || a.email === currentUser.email);
+                    if (byId || byEmail) workerAssignments.push({ ...a, field_number: fieldNum });
+                });
+            });
+            updateStats();
+            renderFields();
+        } else { renderNoFields(); }
+    } catch(e) { console.error('loadWorkerAssignments error:', e); renderNoFields(); }
+    finally    { hideLoading(); }
+}
+
+function updateStats() {
+    let completed = 0, pending = 0;
+    workerAssignments.forEach(a => {
+        const checks = [a.planted == 1, a.irrigation == 1, !!(a.pesticides?.trim())];
+        checks.forEach(v => v ? completed++ : pending++);
+    });
+    const percent = (completed + pending) > 0 ? Math.round(completed / (completed + pending) * 100) : 0;
+    document.getElementById('totalFields').textContent    = workerAssignments.length;
+    document.getElementById('completedTasks').textContent = completed;
+    document.getElementById('pendingTasks').textContent   = pending;
+    document.getElementById('progressPercent').textContent = percent + '%';
+}
+
+function getCropInfo(fieldNum) {
+    const crops = cropData[fieldNum] || [];
+    if (crops.length > 0) {
+        const c = crops[0];
+        const t = cropTypeMap[c.crop_type] || { emoji:'🌱', color:'rgba(52,152,219,.1)|#2980b9', area:'N/A', soil:'N/A' };
+        return { name:c.crop_name||c.crop_type, emoji:c.crop_emoji||t.emoji, color:c.crop_color||t.color, area:t.area, soil:t.soil, planting_date:c.planting_date, harvest_date:c.harvest_date, water:c.water_per_m2, status:c.crop_status||'planted', health:c.health_status||'good' };
+    }
+    const defaults = {
+        1: { name:'Lettuce',          emoji:'🥬',    color:'rgba(76,175,80,.12)|#2e7d32',   area:'2.5 ha', soil:'Clay Loam',   planting_date:'2026-02-08', harvest_date:'2026-03-24', water:'3L / day',   status:'vegetative', health:'good' },
+        2: { name:'Tomato',           emoji:'🍅',    color:'rgba(231,76,60,.1)|#c0392b',    area:'3.0 ha', soil:'Sandy Loam',  planting_date:'2026-02-15', harvest_date:'2026-04-30', water:'4L / day',   status:'vegetative', health:'good' },
+        3: { name:'Onion',            emoji:'🧅',    color:'rgba(155,89,182,.1)|#8e44ad',   area:'1.8 ha', soil:'Silt Loam',   planting_date:'2026-03-01', harvest_date:'2026-06-15', water:'2.5L / day', status:'planted',    health:'good' },
+        4: { name:'Apricots & Beans', emoji:'🍑🫘', color:'rgba(241,196,15,.1)|#d35400',   area:'3.5 ha', soil:'Loamy Sand',  planting_date:'2026-02-10', harvest_date:'2026-05-25', water:'3.5L / day', status:'flowering',  health:'good' }
+    };
+    return defaults[fieldNum] || defaults[1];
+}
+
+function renderFields() {
+    const selector  = document.getElementById('fieldSelector');
+    const container = document.getElementById('fieldsContainer');
+    if (!workerAssignments.length) { renderNoFields(); return; }
+
+    selector.innerHTML = workerAssignments.map((a, i) => {
+        const crop = getCropInfo(a.field_number);
+        return `
+        <button class="field-chip ${i===0?'active':''}" onclick="toggleField(${a.field_number},this)">
+            <div class="fnum">${a.field_number}</div>
+            <span>Field ${a.field_number}</span>
+            <span style="margin-left:.5rem;font-size:.75rem;opacity:.7;">${crop.emoji}</span>
+        </button>`;
+    }).join('');
+
+    container.innerHTML = workerAssignments.map((a, i) => {
+        const crop      = getCropInfo(a.field_number);
+        const planted   = a.planted == 1;
+        const irrigation = a.irrigation == 1;
+        const pesticides = !!(a.pesticides?.trim());
+        const progress  = [planted, irrigation, pesticides].filter(Boolean).length;
+        const percent   = Math.round(progress / 3 * 100);
+
+        const statusClasses = { planted:'status-planted', germination:'status-germination', vegetative:'status-vegetative', flowering:'status-flowering', fruiting:'status-fruiting', harvest:'status-harvest' };
+        const healthClasses = { good:'health-good', fair:'health-fair', poor:'health-poor' };
+
+        return `
+        <div class="field-panel ${i===0?'open':''}" id="field-panel-${a.field_number}">
+            <div class="panel-header">
+                <div class="panel-header-left">
+                    <div class="panel-num">${a.field_number}</div>
+                    <div class="panel-title">
+                        <h2>Field ${a.field_number} — ${crop.name}</h2>
+                        <p>Assignment #${a.id} · ${percent}% Complete</p>
+                    </div>
+                </div>
+                <button class="panel-close" onclick="closePanel(${a.field_number})"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="crop-info-banner">
+                <div class="crop-emoji">${crop.emoji}</div>
+                <div class="crop-info-text"><h3>${crop.name}</h3><p>${crop.area} · ${crop.soil} · Water: ${crop.water}</p></div>
+            </div>
+            <div class="field-details-section">
+                <div class="section-label"><i class="fas fa-info-circle"></i> Crop Information</div>
+                <div class="details-grid">
+                    <div class="detail-card"><div class="detail-icon crop"><i class="fas fa-seedling"></i></div><div class="detail-content"><h4>Crop Type</h4><p>${crop.name}</p></div></div>
+                    <div class="detail-card"><div class="detail-icon area"><i class="fas fa-ruler-combined"></i></div><div class="detail-content"><h4>Field Area</h4><p>${crop.area}</p></div></div>
+                    <div class="detail-card"><div class="detail-icon soil"><i class="fas fa-layer-group"></i></div><div class="detail-content"><h4>Soil Type</h4><p>${crop.soil}</p></div></div>
+                    <div class="detail-card"><div class="detail-icon date"><i class="fas fa-calendar-alt"></i></div><div class="detail-content"><h4>Planted Date</h4><p>${crop.planting_date}</p></div></div>
+                    <div class="detail-card"><div class="detail-icon status"><i class="fas fa-heartbeat"></i></div><div class="detail-content"><h4>Growth Stage</h4><p style="text-transform:capitalize;">${crop.status}</p></div></div>
+                    <div class="detail-card"><div class="detail-icon health"><i class="fas fa-heart"></i></div><div class="detail-content"><h4>Health Status</h4><p style="text-transform:capitalize;">${crop.health}</p></div></div>
+                </div>
+            </div>
+            <div class="activities-section">
+                <div class="section-label"><i class="fas fa-clipboard-check"></i> My Activity Status</div>
+                <div class="activities-grid">
+                    <div class="activity-card ${planted?'completed':''}">
+                        <div class="activity-card-head"><div class="activity-avatar planted"><i class="fas fa-seedling"></i></div><span class="activity-title">Planted</span></div>
+                        <div class="activity-body"><div class="activity-row"><span class="activity-label"><i class="fas fa-check-circle"></i>Status</span><span class="status-badge ${planted?'yes':'no'}"><i class="fas fa-${planted?'check':'times'}"></i> ${planted?'Yes':'No'}</span></div></div>
+                    </div>
+                    <div class="activity-card ${irrigation?'completed':''}">
+                        <div class="activity-card-head"><div class="activity-avatar irrigation"><i class="fas fa-tint"></i></div><span class="activity-title">Irrigation</span></div>
+                        <div class="activity-body"><div class="activity-row"><span class="activity-label"><i class="fas fa-check-circle"></i>Status</span><span class="status-badge ${irrigation?'yes':'no'}"><i class="fas fa-${irrigation?'check':'times'}"></i> ${irrigation?'Yes':'No'}</span></div></div>
+                    </div>
+                    <div class="activity-card ${pesticides?'completed':''}">
+                        <div class="activity-card-head"><div class="activity-avatar pesticides"><i class="fas fa-spray-can"></i></div><span class="activity-title">Pesticides</span></div>
+                        <div class="activity-body"><div class="activity-row"><span class="activity-label"><i class="fas fa-check-circle"></i>Applied</span><span class="pesticide-value ${pesticides?'':'empty'}">${pesticides?escapeHtml(a.pesticides):'— not set —'}</span></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="progress-section">
+                <div class="progress-header"><h4><i class="fas fa-chart-line" style="margin-right:.5rem;color:var(--terra);"></i>Overall Progress</h4><span class="progress-percent">${percent}%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${percent}%"></div></div>
+            </div>
+            <div class="panel-actions">
+                <a href="worker-activities.html?field=${a.field_number}" class="btn btn-primary"><i class="fas fa-clipboard-check"></i> Update Activities</a>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function toggleField(num, btn) {
+    const panel  = document.getElementById('field-panel-' + num);
+    const isOpen = panel.classList.contains('open');
+    document.querySelectorAll('.field-panel').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.field-chip').forEach(b => b.classList.remove('active'));
+    if (!isOpen) { panel.classList.add('open'); btn.classList.add('active'); panel.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+}
+
+function closePanel(num) {
+    document.getElementById('field-panel-' + num).classList.remove('open');
+    document.querySelectorAll('.field-chip').forEach(b => b.classList.remove('active'));
+}
+
+function renderNoFields() {
+    document.getElementById('fieldSelector').innerHTML = '';
+    document.getElementById('fieldsContainer').innerHTML = `
+        <div class="no-field-message">
+            <i class="fas fa-clipboard-question"></i>
+            <h3>No Field Assignments</h3>
+            <p>You are not currently assigned to any fields.</p>
+        </div>`;
+}
+
+async function fetchWeather() {
+    const btn = document.querySelector('.refresh-btn');
+    if (btn) btn.classList.add('spinning');
+    try {
+        const data    = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${JIJEL_LAT}&longitude=${JIJEL_LON}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,visibility&timezone=Africa/Algiers`).then(r => r.json());
+        const current = data.current;
+        const info    = weatherCodes[current.weather_code] || weatherCodes[0];
+        document.getElementById('tempDisplay').textContent       = `${Math.round(current.temperature_2m)}°C`;
+        document.getElementById('condDisplay').textContent       = info.label;
+        document.getElementById('weatherIcon').innerHTML         = `<i class="fas ${info.icon}" style="color:${info.color};"></i>`;
+        document.getElementById('humidityDisplay').textContent   = `${current.relative_humidity_2m}%`;
+        document.getElementById('windDisplay').textContent       = `${Math.round(current.wind_speed_10m)} km/h`;
+        document.getElementById('visibilityDisplay').textContent = current.visibility ? `${(current.visibility/1000).toFixed(1)} km` : 'N/A';
+    } catch(e) { console.error('Weather error:', e); }
+    finally    { if (btn) btn.classList.remove('spinning'); }
+}
+
+function escapeHtml(str) {
+    return str ? str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) : '';
+}
+
+function showLoading()  { document.getElementById('loadingOverlay').classList.add('active'); }
+function hideLoading()  { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+function notify(msg, type = 'success') {
+    document.querySelectorAll('.notif').forEach(n => n.remove());
+    const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', info:'fa-info-circle' };
+    const el    = Object.assign(document.createElement('div'), { className:`notif notif-${type}`, innerHTML:`<i class="fas ${icons[type]||icons.info}"></i> ${msg}` });
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.animation = 'slideOut .3s ease forwards'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+</script>
+</body>
+</html>

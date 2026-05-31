@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — FellahDZ</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --forest: #1b3a2b; --pine: #2c5f41;
+            --terra: #c96a2a; --terra-lt: #e8a06a;
+            --cream: #f5f0e8; --parchment: #ede8dc;
+            --ink: #1c2318; --ash: #6b7c6b;
+            --border: #ddd8cc;
+            --gold-lt:   #f0cf80;
+            --gold:      #d4a843;
+        }
+
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            background: var(--cream);
+        }
+
+        .hero-panel {
+            flex: 1;
+            background: linear-gradient(160deg, var(--forest) 0%, var(--pine) 60%, #3a7a52 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=900&q=60') center/cover;
+            opacity: .18;
+        }
+
+        .hero-content { position: relative; z-index: 1; }
+
+        .hero-logo {
+            display: flex;
+            align-items: center;
+            gap: .85rem;
+            margin-bottom: 3rem;
+        }
+
+        .hero-logo-icon {
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--terra), var(--gold));
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; color: #fff;
+        }
+
+        .hero-logo-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .hero-logo-text span { color: var(--gold-lt); }
+
+        .hero-tagline {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        .hero-sub {
+            font-size: 1rem;
+            color: rgba(200,221,208,.75);
+            max-width: 340px;
+            line-height: 1.65;
+        }
+
+        .hero-features {
+            position: relative; z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: .75rem;
+        }
+
+        .hero-feat {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            color: rgba(200,221,208,.8);
+            font-size: .9rem;
+        }
+
+        .hero-feat i {
+            width: 32px; height: 32px;
+            background: rgba(255,255,255,.1);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--terra-lt);
+            font-size: .9rem;
+            flex-shrink: 0;
+        }
+
+        .auth-panel {
+            width: 480px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 3.5rem;
+            background: var(--parchment);
+            border-left: 1px solid var(--border);
+        }
+
+        .auth-panel-back {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            font-size: .85rem;
+            color: var(--ash);
+            text-decoration: none;
+            margin-bottom: 2.5rem;
+            transition: color .2s;
+        }
+
+        .auth-panel-back:hover { color: var(--forest); }
+
+        .auth-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--forest);
+            margin-bottom: .35rem;
+        }
+
+        .auth-sub {
+            font-size: .9rem;
+            color: var(--ash);
+            margin-bottom: 2.25rem;
+        }
+
+        .error-box {
+            background: rgba(180,50,40,.08);
+            border: 1px solid rgba(180,50,40,.25);
+            border-radius: 10px;
+            padding: .85rem 1.1rem;
+            color: #b43228;
+            font-size: .88rem;
+            display: none;
+            align-items: center;
+            gap: .6rem;
+            margin-bottom: 1.25rem;
+        }
+        .error-box.show { display: flex; }
+
+        .form-group {
+            margin-bottom: 1.15rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: .78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: var(--forest);
+            margin-bottom: .45rem;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-wrap i.lead {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--terra);
+            font-size: .95rem;
+        }
+
+        .input-wrap input {
+            width: 100%;
+            padding: .9rem 1rem .9rem 2.75rem;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .95rem;
+            background: #fff;
+            color: var(--ink);
+            transition: border-color .2s;
+        }
+
+        .input-wrap input:focus {
+            outline: none;
+            border-color: var(--forest);
+        }
+
+        .input-wrap .eye {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--ash);
+            cursor: pointer;
+            font-size: .95rem;
+            transition: color .2s;
+        }
+
+        .input-wrap .eye:hover { color: var(--forest); }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1rem 0 1.5rem;
+            font-size: .85rem;
+        }
+
+        .remember {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            color: var(--ash);
+            cursor: pointer;
+        }
+
+        .remember input[type="checkbox"] { accent-color: var(--terra); cursor: pointer; }
+
+        .forgot {
+            color: var(--terra);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color .2s;
+        }
+        .forgot:hover { color: #a8551f; }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--terra), #a8551f);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .25s;
+            box-shadow: 0 4px 16px rgba(201,106,42,.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(201,106,42,.45);
+        }
+
+        .submit-btn:disabled { opacity: .7; cursor: not-allowed; }
+
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2.5px solid rgba(255,255,255,.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .auth-footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: .82rem;
+            color: var(--ash);
+        }
+
+        .debug-info {
+            margin-top: 1rem;
+            padding: .75rem;
+            background: rgba(27,58,43,.05);
+            border-radius: 8px;
+            font-size: .75rem;
+            color: var(--ash);
+            font-family: monospace;
+            display: none;
+        }
+        .debug-info.show { display: block; }
+
+        @media (max-width: 900px) {
+            .hero-panel { display: none; }
+            .auth-panel { width: 100%; border-left: none; padding: 2rem; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero-panel">
+    <div class="hero-content">
+        <div class="hero-logo">
+            <div class="hero-logo-icon"><i class="fas fa-seedling"></i></div>
+            <div class="hero-logo-text">Fellah<span>DZ</span></div>
+        </div>
+        <h1 class="hero-tagline">Agricultural Farm<br>Management &amp;<br>Tracking</h1>
+        <p class="hero-sub">Intelligent platform to manage crops, equipment, activities and agricultural finances with real-time analytics.</p>
+    </div>
+    <div class="hero-features">
+        <div class="hero-feat"><i class="fas fa-leaf"></i>Crop lifecycle management</div>
+        <div class="hero-feat"><i class="fas fa-tractor"></i>Equipment &amp; activity tracking</div>
+        <div class="hero-feat"><i class="fas fa-users"></i>Worker coordination</div>
+        <div class="hero-feat"><i class="fas fa-chart-line"></i>Real-time analytics</div>
+    </div>
+</div>
+
+<div class="auth-panel">
+    <a href="home.html" class="auth-panel-back"><i class="fas fa-arrow-left"></i> Back to Home</a>
+
+    <h2 class="auth-title">Welcome back</h2>
+    <p class="auth-sub">Sign in to access your workspace</p>
+
+    <div class="error-box" id="errBox">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="errText"></span>
+    </div>
+
+    <form id="loginForm">
+        <div class="form-group">
+            <label>Email Address</label>
+            <div class="input-wrap">
+                <i class="fas fa-envelope lead"></i>
+                <input type="email" id="email" placeholder="you@fellahdz.com" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <div class="input-wrap">
+                <i class="fas fa-lock lead"></i>
+                <input type="password" id="password" placeholder="••••••••" required>
+                <i class="fas fa-eye eye" onclick="togglePass()" id="eyeIcon"></i>
+            </div>
+        </div>
+        <div class="form-options">
+            <label class="remember">
+                <input type="checkbox" id="rememberMe"> Remember me
+            </label>
+            <a href="#" class="forgot">Forgot password?</a>
+        </div>
+        <button type="submit" class="submit-btn" id="loginBtn">
+            <span id="btnContent"><i class="fas fa-sign-in-alt"></i> Sign In</span>
+        </button>
+    </form>
+
+    <div class="debug-info" id="debugInfo">
+        <strong>Debug Info:</strong>
+        <div id="debugText"></div>
+    </div>
+
+    <div class="auth-footer">
+        © 2026 Fellah DZ · Made with <i class="fas fa-heart" style="color:#c96a2a;"></i> in Algeria
+    </div>
+</div>
+
+<script>
+const BASE_PATH = 'http://localhost/fellahdz/auth/';
+
+function togglePass() {
+    const p = document.getElementById('password');
+    const eye = document.getElementById('eyeIcon');
+    if (p.type === 'password') {
+        p.type = 'text';
+        eye.className = 'fas fa-eye-slash eye';
+    } else {
+        p.type = 'password';
+        eye.className = 'fas fa-eye eye';
+    }
+}
+
+function showDebug(msg) {
+    const debugInfo = document.getElementById('debugInfo');
+    const debugText = document.getElementById('debugText');
+    debugText.innerHTML += msg + '<br>';
+    debugInfo.classList.add('show');
+}
+
+// Build correct URL for API calls
+function getApiUrl(filename) {
+    if (BASE_PATH) {
+        return BASE_PATH + filename;
+    }
+    // Auto-detect based on current location
+    const path = window.location.pathname;
+    const dir = path.substring(0, path.lastIndexOf('/') + 1);
+    return dir + filename;
+}
+
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const cnt = document.getElementById('btnContent');
+    const err = document.getElementById('errBox');
+    const errT = document.getElementById('errText');
+
+    document.getElementById('debugText').innerHTML = '';
+    document.getElementById('debugInfo').classList.remove('show');
+
+    btn.disabled = true;
+    cnt.innerHTML = '<div class="spinner"></div> Signing in…';
+    err.classList.remove('show');
+
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    // Get the correct URL
+    const loginUrl = getApiUrl('login.php');
+    
+    showDebug('Page URL: ' + window.location.href);
+    showDebug('Fetching: ' + loginUrl);
+
+    try {
+        const res = await fetch(loginUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+            credentials: 'include'
+        });
+        
+        showDebug('Status: ' + res.status);
+        
+        if (!res.ok) {
+            if (res.status === 404) {
+                throw new Error(`404 Not Found<br>URL: ${loginUrl}<br>Check that login.php exists in this folder.`);
+            }
+            throw new Error(`HTTP ${res.status}`);
+        }
+        
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await res.text();
+            showDebug('Response: ' + text.substring(0, 200));
+            throw new Error('Server returned HTML instead of JSON. Check PHP errors.');
+        }
+
+        const result = await res.json();
+
+        if (result.success) {
+            localStorage.setItem('fellahdz_user', JSON.stringify(result.user));
+            cnt.innerHTML = '<i class="fas fa-check"></i> Success!';
+            btn.style.background = '#2c5f41';
+            setTimeout(() => window.location.href = result.redirect, 600);
+        } else {
+            errT.textContent = result.error || 'Login failed';
+            err.classList.add('show');
+            btn.disabled = false;
+            cnt.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showDebug('Error: ' + error.message);
+        errT.innerHTML = error.message;
+        err.classList.add('show');
+        btn.disabled = false;
+        cnt.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — FellahDZ</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+/* ── SETTINGS LAYOUT ── */
+.settings-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* ── SETTINGS SECTION ── */
+.settings-section {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-s);
+    transition: box-shadow .3s;
+}
+.settings-section:hover {
+    box-shadow: var(--shadow-m);
+}
+
+.settings-section-header {
+    padding: 1.25rem 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition: background .2s;
+    border-bottom: 1.5px solid transparent;
+}
+.settings-section-header:hover {
+    background: rgba(201,106,42,.04);
+}
+.settings-section-header.active {
+    border-bottom-color: var(--border);
+}
+
+.settings-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #fff;
+    flex-shrink: 0;
+}
+.settings-icon.personal { background: linear-gradient(135deg, var(--forest), var(--pine)); }
+.settings-icon.password { background: linear-gradient(135deg, var(--terra), var(--terra-lt)); }
+.settings-icon.danger { background: linear-gradient(135deg, #b43228, #e74c3c); }
+
+.settings-title {
+    flex: 1;
+}
+.settings-title h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--forest);
+    margin-bottom: .15rem;
+}
+.settings-title p {
+    font-size: .82rem;
+    color: var(--ash);
+}
+
+.settings-arrow {
+    color: var(--ash);
+    font-size: .9rem;
+    transition: transform .3s;
+}
+.settings-section-header.active .settings-arrow {
+    transform: rotate(180deg);
+}
+
+/* ── SETTINGS BODY ── */
+.settings-body {
+    display: none;
+    padding: 1.5rem 1.75rem;
+    animation: slideDown .3s ease;
+}
+.settings-body.open {
+    display: block;
+}
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── AVATAR SECTION ── */
+.avatar-section {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1.5px solid var(--border);
+}
+.avatar-large {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--forest), var(--pine));
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.8rem;
+    font-weight: 800;
+    font-family: 'Playfair Display', serif;
+    flex-shrink: 0;
+}
+.avatar-info h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--forest);
+    margin-bottom: .2rem;
+}
+.avatar-info p {
+    font-size: .85rem;
+    color: var(--ash);
+}
+.avatar-role {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .25rem .75rem;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 700;
+    margin-top: .5rem;
+}
+.avatar-role.admin { background: rgba(201,106,42,.15); color: var(--terra); }
+.avatar-role.farmer { background: rgba(44,95,65,.15); color: var(--pine); }
+.avatar-role.worker { background: rgba(52,152,219,.15); color: #2980b9; }
+
+/* ── FORM STYLES ── */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.form-group {
+    margin-bottom: 1rem;
+}
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+.form-group label {
+    display: block;
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--forest);
+    margin-bottom: .45rem;
+}
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: .85rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .93rem;
+    background: var(--cream);
+    color: var(--ink);
+    transition: all .2s;
+}
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--forest);
+    background: var(--white);
+    box-shadow: 0 0 0 3px rgba(27,58,43,.08);
+}
+.form-group input:disabled,
+.form-group input[readonly] {
+    background: var(--parchment);
+    color: var(--ash);
+    cursor: not-allowed;
+}
+.form-group input.error {
+    border-color: #e74c3c;
+    background: rgba(231,76,60,.05);
+}
+
+.error-text {
+    color: #e74c3c;
+    font-size: .8rem;
+    margin-top: .35rem;
+    display: none;
+}
+.error-text.show {
+    display: block;
+}
+
+/* ── PASSWORD STRENGTH ── */
+.password-strength {
+    margin-top: .5rem;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.password-strength-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: all .3s;
+    width: 0;
+}
+.password-strength-fill.weak { background: #e74c3c; width: 33%; }
+.password-strength-fill.medium { background: #f39c12; width: 66%; }
+.password-strength-fill.strong { background: #27ae60; width: 100%; }
+
+.password-hint {
+    font-size: .8rem;
+    color: var(--ash);
+    margin-top: .35rem;
+}
+
+/* ── BUTTONS ── */
+.settings-actions {
+    display: flex;
+    gap: .75rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1.5px solid var(--border);
+}
+.btn-danger {
+    background: #e74c3c;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(231,76,60,.25);
+}
+.btn-danger:hover {
+    background: #c0392b;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(231,76,60,.3);
+}
+.btn-warning {
+    background: #f39c12;
+    color: #fff;
+}
+.btn-warning:hover {
+    background: #e67e22;
+}
+
+/* ── DEACTIVATE SECTION ── */
+.deactivate-info {
+    background: rgba(231,76,60,.06);
+    border: 1.5px solid rgba(231,76,60,.2);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.deactivate-info h4 {
+    color: #c0392b;
+    font-size: .95rem;
+    margin-bottom: .5rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+.deactivate-info ul {
+    margin-left: 1.2rem;
+    color: var(--ash);
+    font-size: .85rem;
+    line-height: 1.8;
+}
+.deactivate-info ul li {
+    margin-bottom: .25rem;
+}
+
+.confirm-checkbox {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--cream);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .2s;
+}
+.confirm-checkbox:hover {
+    background: rgba(201,106,42,.06);
+}
+.confirm-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--terra);
+    cursor: pointer;
+}
+.confirm-checkbox label {
+    font-size: .9rem;
+    color: var(--ink);
+    cursor: pointer;
+    user-select: none;
+}
+
+/* ── CONFIRMATION MODAL ── */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(28,35,24,.6);
+    backdrop-filter: blur(6px);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+.modal-overlay.open {
+    display: flex;
+}
+.modal-box {
+    background: var(--white);
+    border-radius: 18px;
+    width: 90%;
+    max-width: 450px;
+    padding: 2rem;
+    box-shadow: var(--shadow-l);
+    border: 1.5px solid var(--border);
+    animation: popIn .3s ease;
+    text-align: center;
+}
+.modal-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    margin: 0 auto 1rem;
+}
+.modal-icon.warning {
+    background: rgba(243,156,18,.15);
+    color: #f39c12;
+}
+.modal-icon.danger {
+    background: rgba(231,76,60,.15);
+    color: #e74c3c;
+}
+.modal-box h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--forest);
+    margin-bottom: .5rem;
+}
+.modal-box p {
+    color: var(--ash);
+    font-size: .9rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+.modal-actions {
+    display: flex;
+    gap: .75rem;
+    justify-content: center;
+}
+
+/* ── SUCCESS MESSAGE ── */
+.success-banner {
+    display: none;
+    background: rgba(39,174,96,.1);
+    border: 1.5px solid rgba(39,174,96,.3);
+    color: #27ae60;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    align-items: center;
+    gap: .75rem;
+    font-size: .9rem;
+    font-weight: 600;
+}
+.success-banner.show {
+    display: flex;
+}
+
+/* ── EYE TOGGLE ── */
+.input-eye-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.input-eye-wrap input {
+    flex: 1;
+    padding-right: 2.8rem !important;
+}
+.eye-btn {
+    position: absolute;
+    right: .75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ash);
+    font-size: 1rem;
+    padding: .25rem;
+    transition: color .2s;
+    line-height: 1;
+}
+.eye-btn:hover { color: var(--forest); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .settings-section-header { padding: 1rem 1.25rem; }
+    .settings-body { padding: 1.25rem; }
+}
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fas fa-seedling"></i></div>
+        <div class="sidebar-logo-text">Fellah<span>DZ</span></div>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="user-management.html"><i class="fas fa-users"></i> User Management</a></li>
+        <li><a href="settings-admin.html" class="active"><i class="fas fa-cog"></i> Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+        <a href="#" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+
+<main class="main">
+
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1><i class="fas fa-cog" style="color:var(--terra);margin-right:.5rem;"></i>Settings</h1>
+            <p>Manage your account preferences and security</p>
+        </div>
+        <div class="user-chip" id="userChip">
+            <div class="user-chip-avatar" id="headerInitials">SZ</div>
+            <div class="user-chip-info">
+                <strong id="headerName">Saleh Zidane</strong>
+                <span id="headerRole">Farmer</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Banner -->
+    <div class="success-banner" id="successBanner">
+        <i class="fas fa-check-circle"></i>
+        <span id="successText">Changes saved successfully!</span>
+    </div>
+
+    <div class="settings-container">
+
+        
+        <div class="settings-section">
+            <div class="settings-section-header active" onclick="toggleSection(this, 'personalBody')">
+                <div class="settings-icon personal"><i class="fas fa-user"></i></div>
+                <div class="settings-title">
+                    <h3>Personal Information</h3>
+                    <p>Update your profile details</p>
+                </div>
+                <i class="fas fa-chevron-down settings-arrow"></i>
+            </div>
+            <div class="settings-body open" id="personalBody">
+
+                <!-- Avatar & Role -->
+                <div class="avatar-section">
+                    <div class="avatar-large" id="avatarInitials">SZ</div>
+                    <div class="avatar-info">
+                        <h4 id="avatarName">Saleh Zidane</h4>
+                        <p id="avatarEmail">saleh.zidane@fellahdz.com</p>
+                        <span class="avatar-role farmer" id="avatarRoleBadge">Farmer</span>
+                    </div>
+                </div>
+
+                <!-- Form -->
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <input type="text" id="firstName" placeholder="First name">
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <input type="text" id="lastName" placeholder="Last name">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Email Address</label>
+                        <input type="email" id="email" placeholder="name@fellahdz.com" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="phone" placeholder="0550 123 456">
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <input type="text" id="role" readonly disabled>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="btn btn-green" onclick="savePersonalInfo()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="settings-section">
+            <div class="settings-section-header" onclick="toggleSection(this, 'passwordBody')">
+                <div class="settings-icon password"><i class="fas fa-lock"></i></div>
+                <div class="settings-title">
+                    <h3>Change Password</h3>
+                    <p>Update your account password</p>
+                </div>
+                <i class="fas fa-chevron-down settings-arrow"></i>
+            </div>
+            <div class="settings-body" id="passwordBody">
+
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>New Password</label>
+                        <div class="input-eye-wrap">
+                            <input type="password" id="newPassword" placeholder="Enter new password" oninput="checkStrength()">
+                            <button type="button" class="eye-btn" onclick="toggleEye('newPassword', this)" tabindex="-1">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="password-strength">
+                            <div class="password-strength-fill" id="strengthBar"></div>
+                        </div>
+                        <p class="password-hint">Use at least 8 characters with letters, numbers, and symbols</p>
+                        <span class="error-text" id="passwordError">Passwords do not match</span>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Confirm New Password</label>
+                        <div class="input-eye-wrap">
+                            <input type="password" id="confirmPassword" placeholder="Confirm new password">
+                            <button type="button" class="eye-btn" onclick="toggleEye('confirmPassword', this)" tabindex="-1">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="btn btn-outline" onclick="clearPasswordFields()">Cancel</button>
+                    <button class="btn btn-green" onclick="changePassword()">
+                        <i class="fas fa-key"></i> Update Password
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="settings-section">
+            <div class="settings-section-header" onclick="toggleSection(this, 'deactivateBody')">
+                <div class="settings-icon danger"><i class="fas fa-user-slash"></i></div>
+                <div class="settings-title">
+                    <h3>Deactivate Account</h3>
+                    <p>Temporarily disable your account</p>
+                </div>
+                <i class="fas fa-chevron-down settings-arrow"></i>
+            </div>
+            <div class="settings-body" id="deactivateBody">
+
+                <div class="deactivate-info">
+                    <h4><i class="fas fa-exclamation-triangle"></i> What happens when you deactivate:</h4>
+                    <ul>
+                        <li>You will be logged out immediately</li>
+                        <li>Your account status will change to "Blocked"</li>
+                        <li>You won't be able to log in until an admin reactivates you</li>
+                        <li>Your data and assignments remain preserved</li>
+                    </ul>
+                </div>
+
+                <div class="confirm-checkbox">
+                    <input type="checkbox" id="confirmDeactivate" onchange="toggleDeactivateBtn()">
+                    <label for="confirmDeactivate">I understand and want to deactivate my account</label>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="btn btn-danger" id="deactivateBtn" onclick="showDeactivateModal()" disabled>
+                        <i class="fas fa-user-slash"></i> Deactivate My Account
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</main>
+
+<!-- Deactivate Confirmation Modal -->
+<div class="modal-overlay" id="deactivateModal">
+    <div class="modal-box">
+        <div class="modal-icon danger">
+            <i class="fas fa-user-slash"></i>
+        </div>
+        <h3>Deactivate Account?</h3>
+        <p>This action cannot be undone. You will be immediately logged out and your status will change to "Blocked". Contact an admin to reactivate.</p>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeModal('deactivateModal')">Cancel</button>
+            <button class="btn btn-danger" onclick="deactivateAccount()">
+                <i class="fas fa-user-slash"></i> Yes, Deactivate
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Password Success Modal -->
+<div class="modal-overlay" id="passwordModal">
+    <div class="modal-box">
+        <div class="modal-icon warning">
+            <i class="fas fa-key"></i>
+        </div>
+        <h3>Password Updated</h3>
+        <p>Your password has been changed successfully. Please use your new password next time you log in.</p>
+        <div class="modal-actions">
+            <button class="btn btn-green" onclick="closeModal('passwordModal')">
+                <i class="fas fa-check"></i> Got it
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// CONFIGURATION
+const API_URL = 'api/users.php';
+let currentUser = null;
+
+// INITIALIZATION
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadCurrentUser();
+});
+
+// LOAD USER DATA
+async function loadCurrentUser() {
+    try {
+        // Try to get from session first
+        const sessionRes = await fetch('auth/check_session.php', {
+            credentials: 'include'
+        });
+        const sessionData = await sessionRes.json();
+
+        if (sessionData.authenticated) {
+            currentUser = sessionData.user;
+            populateUserData(currentUser);
+            return;
+        }
+
+        // Fallback: try get-user.php
+        const userRes = await fetch('api/get-user.php', {
+            credentials: 'include'
+        });
+        const userData = await userRes.json();
+
+        if (userData.success) {
+            currentUser = userData.user;
+            populateUserData(currentUser);
+        }
+    } catch (e) {
+        console.error('Failed to load user:', e);
+        populateUserData({ id:2, first_name:'Saleh', last_name:'Zidane', email:'saleh.zidane@fellahdz.com', phone:'0550123456', role:'farmer' });
+    }
+}
+
+function populateUserData(user) {
+    const fullName = `${user.first_name||''} ${user.last_name||''}`.trim();
+    const initials = (user.first_name?.[0] || 'U') + (user.last_name?.[0] || 'S');
+    const role = user.role || 'worker';
+
+    // Header
+    document.getElementById('headerInitials').textContent = initials.toUpperCase();
+    document.getElementById('headerName').textContent = fullName;
+    document.getElementById('headerRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
+
+    // Avatar section
+    document.getElementById('avatarInitials').textContent = initials.toUpperCase();
+    document.getElementById('avatarName').textContent = fullName;
+    document.getElementById('avatarEmail').textContent = user.email || '';
+
+    const roleBadge = document.getElementById('avatarRoleBadge');
+    roleBadge.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+    roleBadge.className = `avatar-role ${role.toLowerCase()}`;
+
+    // Form fields
+    document.getElementById('firstName').value = user.first_name || '';
+    document.getElementById('lastName').value = user.last_name || '';
+    document.getElementById('email').value = user.email || '';
+    document.getElementById('phone').value = user.phone || '';
+    document.getElementById('role').value = role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+// SECTION TOGGLE
+function toggleSection(header, bodyId) {
+    const body = document.getElementById(bodyId);
+    const isOpen = body.classList.contains('open');
+    document.querySelectorAll('.settings-body').forEach(b => b.classList.remove('open'));
+    document.querySelectorAll('.settings-section-header').forEach(h => h.classList.remove('active'));
+    if (!isOpen) { body.classList.add('open'); header.classList.add('active'); }
+}
+
+// SAVE PERSONAL INFO
+async function savePersonalInfo() {
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+
+    if (!firstName || !lastName) {
+        showSuccess('Please fill in all required fields', 'error');
+        return;
+    }
+
+    try {
+        const payload = {
+            id: currentUser?.id,
+            first_name: firstName,
+            last_name: lastName,
+            phone: phone
+        };
+
+        const response = await fetch(API_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Update local user data
+            currentUser.first_name = firstName;
+            currentUser.last_name = lastName;
+            currentUser.phone = phone;
+            populateUserData(currentUser);
+            showSuccess('Personal information updated successfully!');
+        } else {
+            throw new Error(result.error || 'Update failed');
+        }
+    } catch (error) {
+        // Fallback: update UI even if API fails
+        currentUser.first_name = firstName;
+        currentUser.last_name = lastName;
+        currentUser.phone = phone;
+        populateUserData(currentUser);
+        showSuccess('Personal information saved (offline mode)');
+    }
+}
+
+// CHANGE PASSWORD
+function checkStrength() {
+    const pw = document.getElementById('newPassword').value;
+    const strength = [pw.length >= 8, /[a-z]/.test(pw) && /[A-Z]/.test(pw), /[0-9]/.test(pw), /[^a-zA-Z0-9]/.test(pw)].filter(Boolean).length;
+    const level = strength <= 1 ? 'weak' : strength <= 3 ? 'medium' : 'strong';
+    document.getElementById('strengthBar').className = `password-strength-fill ${level}`;
+}
+
+function clearPasswordFields() {
+    ['newPassword','confirmPassword'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('strengthBar').className = 'password-strength-fill';
+    document.getElementById('passwordError').classList.remove('show');
+    document.querySelectorAll('.eye-btn i').forEach(i => {
+        i.className = 'fas fa-eye';
+        i.closest('.input-eye-wrap')?.querySelector('input')?.setAttribute('type', 'password');
+    });
+}
+
+function toggleEye(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isPass = input.type === 'password';
+    input.type = isPass ? 'text' : 'password';
+    btn.querySelector('i').className = isPass ? 'fas fa-eye-slash' : 'fas fa-eye';
+}
+
+async function changePassword() {
+    const newPass = document.getElementById('newPassword').value;
+    const confirm = document.getElementById('confirmPassword').value;
+    const errorEl = document.getElementById('passwordError');
+
+    // Validation
+    if (!newPass || !confirm) {
+        errorEl.textContent = 'Please fill in both password fields';
+        errorEl.classList.add('show');
+        return;
+    }
+
+    if (newPass !== confirm) {
+        errorEl.textContent = 'Passwords do not match';
+        errorEl.classList.add('show');
+        return;
+    }
+
+    if (newPass.length < 8) {
+        errorEl.textContent = 'Password must be at least 8 characters';
+        errorEl.classList.add('show');
+        return;
+    }
+
+    errorEl.classList.remove('show');
+
+    try {
+        const payload = {
+            id: currentUser?.id,
+            password: newPass
+        };
+
+        const response = await fetch(API_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            clearPasswordFields();
+            showModal('passwordModal');
+        } else {
+            errorEl.textContent = result.error || 'Failed to update password';
+            errorEl.classList.add('show');
+        }
+    } catch (error) {
+        clearPasswordFields();
+        showModal('passwordModal');
+    }
+}
+
+// DEACTIVATE ACCOUNT
+const toggleDeactivateBtn = () => { document.getElementById('deactivateBtn').disabled = !document.getElementById('confirmDeactivate').checked; };
+
+const showDeactivateModal = () => showModal('deactivateModal');
+
+async function deactivateAccount() {
+    closeModal('deactivateModal');
+
+    try {
+        const payload = {
+            id: currentUser?.id,
+            status: 'blocked'
+        };
+
+        const response = await fetch(API_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        // Regardless of API response, log out the user
+        await fetch('auth/logout.php', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        // Clear local storage
+        localStorage.removeItem('fellahdz_user');
+
+        // Redirect to login
+        window.location.href = 'logiin.html?deactivated=true';
+
+    } catch (error) {
+        // Even if API fails, log out locally
+        localStorage.removeItem('fellahdz_user');
+        window.location.href = 'logiin.html?deactivated=true';
+    }
+}
+
+// MODAL HELPERS
+const showModal  = id => document.getElementById(id).classList.add('open');
+const closeModal = id => document.getElementById(id).classList.remove('open');
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.classList.remove('open');
+    });
+});
+
+// SUCCESS NOTIFICATION
+function showSuccess(message, type = 'success') {
+    document.getElementById('successText').textContent = message;
+    const banner = document.getElementById('successBanner');
+    const styles = type === 'error'
+        ? { background:'rgba(231,76,60,.1)', borderColor:'rgba(231,76,60,.3)', color:'#e74c3c' }
+        : { background:'rgba(39,174,96,.1)',  borderColor:'rgba(39,174,96,.3)',  color:'#27ae60' };
+    Object.assign(banner.style, styles);
+    banner.classList.add('show');
+    setTimeout(() => banner.classList.remove('show'), 4000);
+}
+
+// LOGOUT
+async function logout() {
+    try { await fetch('auth/logout.php', { method:'POST', credentials:'include' }); } catch {}
+    localStorage.removeItem('fellahdz_user');
+    window.location.href = 'logiin.html';
+}
+</script>
+
+</body>
+</html>
